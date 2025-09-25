@@ -4,16 +4,22 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.UI;
+using TMPro;
 
 public class TabsManager : MonoBehaviour
 {
     [SerializeField] UnityEvent<int> onTabSelected;
+
+    [Header("Visual Effect Components")]
     [SerializeField] Image selectBackground;
+    [SerializeField] Image leftArrow;
+    [SerializeField] Image rightArrow;
+    [SerializeField] TextMeshProUGUI subheading;
 
     Tab[] tabs;
     private int currentTabIndex = 0;
 
-    private void Start()
+    private void Awake()
     {
         tabs = GetComponentsInChildren<Tab>();
 
@@ -21,6 +27,10 @@ public class TabsManager : MonoBehaviour
         {
             tab.Initialize(this);
         }
+    }
+
+    private void Start()
+    { 
 
         // 强制立即更新布局，确保所有 RectTransform 都已计算完毕
         // 这对于 Screen Space - Camera 模式下的初始布局问题尤其有效
@@ -45,6 +55,7 @@ public class TabsManager : MonoBehaviour
                 currentTabIndex = i; // update currentTabIndex 
                 tabs[i].OnSelect();
                 selectedSiblingIndex = tabs[i].transform.GetSiblingIndex();
+                ChangeSubheadingText(selectedTab);
             }
             else
             {
@@ -70,10 +81,11 @@ public class TabsManager : MonoBehaviour
     /// <summary> 
     /// navigate by the direction 
     /// </summary> 
-    /// <param name="direction">1 -- left, -1 -- right</param> 
+    /// <param name="direction">-1 -- left, 1 -- right</param> 
     public void NavigateTabs(int direction)
     {
         int newIndex = currentTabIndex + direction;
+        int arrowIndex = newIndex;
 
         // Ensure that it does not go beyond the scope 
         newIndex = Mathf.Clamp(newIndex, 0, tabs.Length - 1);
@@ -82,6 +94,34 @@ public class TabsManager : MonoBehaviour
         {
             SelectTab(tabs[newIndex], true); // 用户导航时，播放动画
         }
+
+        if(direction < 0)
+        {
+            leftArrow.rectTransform.DOKill();
+            if(arrowIndex >= 0)
+            {
+                leftArrow.rectTransform.DOScale(Vector2.one * 1.3f, 0);
+                leftArrow.rectTransform.DOScale(Vector2.one, 0.1f);
+            }
+            else
+            {
+                leftArrow.rectTransform.DOShakePosition(0.15f, new Vector3(1.0f, 0, 0), 10, 0, false, true);
+            }
+         
+        }
+        else
+        {
+            rightArrow.rectTransform.DOKill();
+            if (arrowIndex <= tabs.Length - 1)
+            {
+                rightArrow.rectTransform.DOScale(Vector2.one * 1.3f, 0);
+                rightArrow.rectTransform.DOScale(Vector2.one, 0.1f);
+            }
+            else
+            {
+                rightArrow.rectTransform.DOShakePosition(0.15f, new Vector3(1.0f, 0, 0), 10, 0, false, true);
+            }
+        }
     }
 
     // Reset the filter page options when opening the menu 
@@ -89,5 +129,13 @@ public class TabsManager : MonoBehaviour
     {
         // 这个方法被 MenuController 调用，用于初始化或重置，所以也不播放动画
         SelectTab(tabs[selectTabIndex], false);
+    }
+
+    public void ChangeSubheadingText(Tab selectedTab)
+    {
+        Sequence subheadingSequence = DOTween.Sequence();
+        subheadingSequence.Append(subheading.DOFade(0, 0.1f));
+        subheadingSequence.AppendCallback(() => subheading.text = selectedTab.category.ToString());
+        subheadingSequence.Append(subheading.DOFade(1, 0.1f));
     }
 }
