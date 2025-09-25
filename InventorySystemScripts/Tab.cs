@@ -11,6 +11,7 @@ public class Tab : MonoBehaviour
 
     // Temp
     public TabsManager tabsManager;
+    public ItemCategory category;
 
     public void Initialize(TabsManager tabsManager)
     {
