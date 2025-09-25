@@ -18,9 +18,10 @@ public class Item : ScriptableObject
 public enum ItemCategory
 {
     Key,
-    Item,
+    Consumable,
     Weapon,
     Equipment,
     Accessory,
     Material,
+    All
 }
