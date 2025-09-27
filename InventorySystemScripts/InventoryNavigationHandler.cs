@@ -16,22 +16,24 @@ public class InventoryNavigationHandler : MonoBehaviour
     {
         if (_menuController.LastItemSelected == null) return;
 
-        if (UserInput.MoveInput.x > 0)
+        Vector2 move = UserInput.UIMoveInput;
+
+        if (move.x > 0)
         {
             int add = CalculateXAddition(1);
             HandleNextItemSelection(add);
         }
-        else if (UserInput.MoveInput.x < 0)
+        else if (move.x < 0)
         {
             int add = CalculateXAddition(-1);
             HandleNextItemSelection(add);
         }
-        else if (UserInput.MoveInput.y > 0)
+        else if (move.y > 0)
         {
             int add = CalculateYAddition(1);
             HandleNextItemSelection(add);
         }
-        else if (UserInput.MoveInput.y < 0)
+        else if (move.y < 0)
         {
             int add = CalculateYAddition(-1);
             Debug.Log("MoveInput Y < 0: add = " + add);
