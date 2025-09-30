@@ -37,7 +37,5 @@ public class InventoryManager : MonoBehaviour
     {
         inventory.Remove(new InventorySlot(oldItem));
         OnItemRemoved?.Invoke();
-    }
-
-        
+    }      
 }

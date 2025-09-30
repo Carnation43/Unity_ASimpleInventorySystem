@@ -8,6 +8,8 @@ public class Tab : MonoBehaviour
     [Header("Components")]
     [SerializeField] Image icon;
     // [SerializeField] Image background;
+    [SerializeField] private Color selectedColor = Color.black;
+    [SerializeField] private Color deselectedColor = Color.white;
 
     // Temp
     public TabsManager tabsManager;
@@ -20,12 +22,12 @@ public class Tab : MonoBehaviour
 
     public void OnSelect()
     {
-        icon.color = Color.black;
+        icon.color = selectedColor;
     }
 
     public void OnDeselect()
     {
-        icon.color = Color.white;
+        icon.color = deselectedColor;
     }
 
     public void OnClick()

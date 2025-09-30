@@ -13,7 +13,7 @@ public class InventorySlotUI : MonoBehaviour, ISelectHandler, IDeselectHandler
 
     private Transform inventoryPanel; // 物品栏根节点
 
-    InventorySlot slot; // data structure
+    public InventorySlot slot; // data structure
 
     private void Awake()
     {
@@ -83,6 +83,12 @@ public class InventorySlotUI : MonoBehaviour, ISelectHandler, IDeselectHandler
             TooltipInstance.instance.setTooltip(slot);
             TooltipInstance.instance._trackedRectTransform = icon.rectTransform;
             TooltipInstance.instance.Show(icon.rectTransform);
+
+            // If the details panel is currently open, update its content
+            if (DetailsContent.instance != null && DetailsContent.instance.IsChanged2Details)
+            {
+                DetailsContent.instance.SetupItemDetails(slot.item);
+            }
         }
         else
         {

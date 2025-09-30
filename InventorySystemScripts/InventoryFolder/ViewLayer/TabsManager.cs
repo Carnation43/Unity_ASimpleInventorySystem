@@ -5,8 +5,9 @@ using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.UI;
 using TMPro;
+using InstanceResetToDefault;
 
-public class TabsManager : MonoBehaviour
+public class TabsManager : MonoBehaviour, IResettable
 {
     [SerializeField] UnityEvent<int> onTabSelected;
 
@@ -17,7 +18,8 @@ public class TabsManager : MonoBehaviour
     [SerializeField] TextMeshProUGUI subheading;
 
     Tab[] tabs;
-    private int currentTabIndex = 0;
+
+    public int currentTabIndex { get; private set; } = 0;
 
     private void Awake()
     {
@@ -29,21 +31,32 @@ public class TabsManager : MonoBehaviour
         }
     }
 
-    private void Start()
-    { 
+    private void OnEnable()
+    {
+        if (SingletonResetManager.Instance != null)
+        {
+            SingletonResetManager.Instance.Register(this);
+        }
+    }
 
-        // 强制立即更新布局，确保所有 RectTransform 都已计算完毕
-        // 这对于 Screen Space - Camera 模式下的初始布局问题尤其有效
+    private void OnDisable()
+    {
+        if (SingletonResetManager.Instance != null)
+        {
+            SingletonResetManager.Instance.UnRegister(this);
+        }
+    }
+
+    private void Start()
+    {
+        // Force update layout
         if (selectBackground != null && selectBackground.transform.parent != null)
         {
             LayoutRebuilder.ForceRebuildLayoutImmediate(selectBackground.transform.parent as RectTransform);
         }
-
-        // 第一次打开时，直接设置位置，不播放动画
-        SelectTab(tabs[0], false);
     }
 
-    // 添加一个可选的 animate 参数，默认为 true
+    
     public void SelectTab(Tab selectedTab, bool animate = true)
     {
         int selectedSiblingIndex = -1;
@@ -65,14 +78,14 @@ public class TabsManager : MonoBehaviour
         // Animation effect 
         if (selectBackground != null)
         {
-            if (animate) // 如果 animate 为 true，则播放动画
+            if (animate)
             {
                 selectBackground.transform.DOMove(selectedTab.transform.position, 0.2f)
                             .SetEase(Ease.OutQuad);
             }
-            else // 否则，直接设置位置
+            else 
             {
-                selectBackground.transform.position = selectedTab.transform.position;
+                selectBackground.rectTransform.pivot = selectedTab.gameObject.GetComponent<RectTransform>().pivot;
             }
         }
         onTabSelected?.Invoke(selectedSiblingIndex - 1); // Subtracting 1 is because selectBackground occupies the position of Sibling Index 0. 
@@ -92,7 +105,7 @@ public class TabsManager : MonoBehaviour
 
         if (newIndex != currentTabIndex)
         {
-            SelectTab(tabs[newIndex], true); // 用户导航时，播放动画
+            SelectTab(tabs[newIndex], true); // play animation when navigating inventory
         }
 
         if(direction < 0)
@@ -124,18 +137,16 @@ public class TabsManager : MonoBehaviour
         }
     }
 
-    // Reset the filter page options when opening the menu 
-    public void SelectTab(int selectTabIndex)
-    {
-        // 这个方法被 MenuController 调用，用于初始化或重置，所以也不播放动画
-        SelectTab(tabs[selectTabIndex], false);
-    }
-
     public void ChangeSubheadingText(Tab selectedTab)
     {
         Sequence subheadingSequence = DOTween.Sequence();
         subheadingSequence.Append(subheading.DOFade(0, 0.1f));
         subheadingSequence.AppendCallback(() => subheading.text = selectedTab.category.ToString());
         subheadingSequence.Append(subheading.DOFade(1, 0.1f));
+    }
+
+    public void ResetToDefaultState()
+    {
+        SelectTab(tabs[0], false);
     }
 }

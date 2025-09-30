@@ -1,0 +1,99 @@
+using InstanceResetToDefault;
+using UnityEngine;
+using UnityEngine.EventSystems;
+using UnityEngine.UI;
+
+public class MenuController : MonoBehaviour
+{
+    public static MenuController instance;
+
+    [Header("Core UI References")]
+    [SerializeField] private GameObject _canvasObj;
+    [SerializeField] private GridLayoutGroup _group;
+
+    [Header("Dependencies (Drag Components Here)")]
+    [SerializeField] private InventoryView _viewController;
+    [SerializeField] private MenuStateManager _stateManager;
+    [SerializeField] private InventoryNavigationHandler _navigationHandler;
+    [SerializeField] private TabsManager _tabsManager;
+
+    public bool IsMenuOpen { get; private set; }
+
+    private void Awake()
+    {
+        if (instance == null) instance = this;
+        else if (instance != this) { Destroy(gameObject); return; }
+
+        // Subscribe to item addition, deletion, and selection events
+        InventoryManager.instance.OnItemAdded += HandleInventoryDataChanged;
+        InventoryManager.instance.OnItemRemoved += HandleInventoryDataChanged;
+        ItemsIconAnimationController.OnItemSelected += _stateManager.OnItemSelected;
+
+        _navigationHandler.Initialize(_stateManager, _viewController, _group);
+
+        _canvasObj.SetActive(false);
+        IsMenuOpen = false;
+    }
+
+    private void Update()
+    {
+        if (!IsMenuOpen) return;
+
+        if (EventSystem.current.currentSelectedGameObject == null && _stateManager.LastItemSelected != null)
+        {
+            _navigationHandler.HandleNavigationInput();
+        }
+    }
+
+    public void ToggleMenu()
+    {
+        IsMenuOpen = !IsMenuOpen;
+
+        if (IsMenuOpen)
+        {
+            _canvasObj.SetActive(true);
+            // default reset
+            SingletonResetManager.Instance.ResetAllSingletons();
+            _stateManager.ClearSelection();
+            HandleInventoryDataChanged();
+        }
+        else
+        {
+            if (_stateManager.LastItemSelected != null)
+            {
+                var iconController = _stateManager.LastItemSelected.GetComponent<BaseIconAnimationController>();
+                if (iconController != null) iconController.OnDeselect(new BaseEventData(EventSystem.current));
+            }
+            EventSystem.current.SetSelectedGameObject(null);
+            _canvasObj.SetActive(false);
+        }
+    }
+
+    // Filter the inventory according to item categories
+    public void ChangeFilter(int id)
+    {
+        var items = InventoryManager.instance.inventory;
+        if (id != 0)
+        {
+            var category = (ItemCategory)(id - 1);
+            items = InventoryManager.instance.inventory.FindAll(x => x.item.category == category);
+        }
+        _viewController.RefreshInventoryGrid(items);
+    }
+
+    private void HandleInventoryDataChanged()
+    {
+        if (!IsMenuOpen) return;
+        if (_tabsManager != null) ChangeFilter(_tabsManager.currentTabIndex);
+    }
+
+    private void OnDestroy()
+    {
+        if (InventoryManager.instance != null)
+        {
+            InventoryManager.instance.OnItemAdded -= HandleInventoryDataChanged;
+            InventoryManager.instance.OnItemRemoved -= HandleInventoryDataChanged;
+        }
+        ItemsIconAnimationController.OnItemSelected -= _stateManager.OnItemSelected;
+    }
+}

@@ -1,34 +1,35 @@
-using UnityEngine.InputSystem;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using DG.Tweening;
-using UnityEngine.UIElements;
+using System;
 
 public class ItemsIconAnimationController : BaseIconAnimationController
 {
     // Awake, OnDeselect, OnPointerEnter, OnPointerExit has been handled in BaseIconAnimationController
 
+    public static event Action<GameObject, int> OnItemSelected;
+
     public override void OnSelect(BaseEventData eventData)
     {
-        if (canvasGroup == null || rectTransform == null)
-        {
-            return;
-        }
-
+        if (canvasGroup == null || rectTransform == null) return;
         selected = true;
 
-        // swing left and right
-
         // record index and gameObject on last selected item
-        MenuController.instance.LastItemSelected = gameObject;
-        for (int i = 0; i < MenuController.instance.inventorySlots.Count; i++)
+        int correctIndex = -1;
+        if (InventoryView.instance != null)
         {
-            if (MenuController.instance.inventorySlots[i].gameObject == gameObject)
+            var slotList = InventoryView.instance.SlotUIList;
+            for (int i = 0; i < slotList.Count; i++)
             {
-                MenuController.instance.LastSelectedIndex = i;
-                break;
+                if (slotList[i].gameObject == this.gameObject)
+                {
+                    correctIndex = i;
+                    break;
+                }
             }
         }
+
+        OnItemSelected?.Invoke(gameObject, correctIndex);
 
         canvasGroup.DOFade(1, 0.2f);
         rectTransform.DOScale(Vector2.one * 1.2f, 0.2f);

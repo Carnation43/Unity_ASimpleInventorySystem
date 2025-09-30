@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.EventSystems;
 
 public class UserInput : MonoBehaviour
 {
@@ -205,13 +206,22 @@ public class UserInput : MonoBehaviour
 
     private void OnShowDetails(InputAction.CallbackContext obj)
     {
-        Debug.Log("Show details");
-        DetailsPanel.instance.ChangePanel();
+        DetailsContent.instance.ToggleByInput();
     }
 
     private void OnConfirm(InputAction.CallbackContext obj)
     {
         Debug.Log("Confirm");
+
+        // If in the detail panel, press J to skip text;
+        if (DetailsContent.instance.IsChanged2Details)
+        {
+            // TypewriterEffect.instance.ToggleSkip(); 
+            if (SequenceController.instance != null)
+            {
+                SequenceController.instance.SkipCurrentTypewriter();
+            }
+        }
     }
 
     private void OnToggleMenu(InputAction.CallbackContext obj)
