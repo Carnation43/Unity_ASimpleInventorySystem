@@ -7,14 +7,23 @@ using UnityEngine.EventSystems;
 
 public class UserInput : MonoBehaviour
 {
+    public static UserInput instance;
+
+    [Header("Broadcasting On")]
+    [SerializeField] private InputEventChannel inputChannel;
+
     [Header("References")]
     [SerializeField] private TabsManager tabsManager;
 
     public static PlayerInput playerInput;
-
-    public static Vector2 MoveInput;
-    public static Vector2 MousePos;
     public static Vector2 UIMoveInput;
+
+    public delegate void MouseMoveAction();
+    public static event MouseMoveAction OnMouseMovedAction;
+    private Vector2 _lastMousePos;      // track last mouse position
+
+    [Obsolete("UserInput.OnNavigatePerformed is deprecated.")]
+    public static event Action OnNavigatePerformed;
 
     // Player Actions
     private InputAction _moveAction;
@@ -33,16 +42,19 @@ public class UserInput : MonoBehaviour
     private InputAction _toggleMenuAction;
     private InputAction _mouseAction;
 
-    private Vector2 _lastMousePos;      // track last mouse position
-
-    public delegate void MouseMoveAction();
-    public static event MouseMoveAction OnMouseMovedAction;
-
+    
     private void Awake()
     {
+        if (instance == null) instance = this;
+        else if (instance != this) { Destroy(gameObject); return; }
         playerInput = GetComponent<PlayerInput>();
-
         SetupActions();
+    }
+
+    private void Start()
+    {
+        playerInput.SwitchCurrentActionMap("Player");
+        // RebindActions();
     }
 
     private void OnEnable()
@@ -55,33 +67,29 @@ public class UserInput : MonoBehaviour
             BindPlayerActions();
     }
 
-    private void Start()
-    {
-        playerInput.SwitchCurrentActionMap("Player");
-        // RebindActions();
-    }
-
-    private void Update()
-    {
-        MoveInput = _moveAction.ReadValue<Vector2>();
-        MousePos = _mouseAction.ReadValue<Vector2>();
-
-        if (MousePos != _lastMousePos)
-        {
-            MouseMovedEvent();
-        }
-
-        _lastMousePos = MousePos;
-
-        // Debug.Log($"MousePos: {MousePos}");
-    }
-
     private void OnDisable()
     {
         UnbindGlobalActions();
         UnbindPlayerActions();
         UnbindUIActions();
     }
+
+    private void Update()
+    {
+        Vector2 currentMousePos = _mouseAction.ReadValue<Vector2>();
+
+        if (currentMousePos != _lastMousePos)
+        {
+            inputChannel?.RaiseMouseMovedEvent(currentMousePos);
+
+            OnMouseMovedAction?.Invoke();
+        }
+
+        _lastMousePos = currentMousePos;
+
+        // Debug.Log($"MousePos: {MousePos}");
+    }
+
 
     // When adding new actions, map it to the actions in the new Input System
     // For global operations, place the configuration in the Global binding function.
@@ -100,6 +108,9 @@ public class UserInput : MonoBehaviour
         _showDetailsAction               = playerInput.actions["ShowDetails"];
         _hideAction                      = playerInput.actions["Hide"];
 
+        // Global
+        _toggleMenuAction                = playerInput.actions["ToggleMenu"];
+        _mouseAction                     = playerInput.actions["MousePosition"];
     }
 
     #region [SwitchToPlayer] & [SwitchToUI] used to change action map
@@ -109,7 +120,6 @@ public class UserInput : MonoBehaviour
         UnbindUIActions();
         playerInput.SwitchCurrentActionMap("Player");
         BindPlayerActions();
-
         BindGlobalActions();
     }
 
@@ -119,7 +129,6 @@ public class UserInput : MonoBehaviour
         UnbindPlayerActions();
         playerInput.SwitchCurrentActionMap("UI");
         BindUIActions();
-
         BindGlobalActions();
     }
     #endregion
@@ -130,8 +139,9 @@ public class UserInput : MonoBehaviour
     #region [Global]
     private void BindGlobalActions()
     {
-        _toggleMenuAction               = playerInput.actions["ToggleMenu"];
-        _mouseAction                    = playerInput.actions["MousePosition"];
+        _toggleMenuAction = playerInput.actions["ToggleMenu"];
+        _mouseAction = playerInput.actions["MousePosition"];
+
         _toggleMenuAction.performed     += OnToggleMenu;
     }
 
@@ -143,12 +153,14 @@ public class UserInput : MonoBehaviour
     #region [Player]
     private void BindPlayerActions()
     {
+        _moveAction.performed           += OnMove;
         _jumpAction.performed           += OnJump;
         _attackAction.performed         += OnAttack;
     }
 
     private void UnbindPlayerActions()
     {
+        _moveAction.performed           -= OnMove;
         _jumpAction.performed           -= OnJump;
         _attackAction.performed         -= OnAttack;
     }
@@ -180,83 +192,21 @@ public class UserInput : MonoBehaviour
     /// The following is the input callback method bound through the InputAction callback
     /// Used to respond to and process player input
     /// </summary>
-    #region [Input Actions]
-    private void OnNavigate(InputAction.CallbackContext obj)
+    #region [Input Actions Callbacks]
+    private void OnMove(InputAction.CallbackContext context)                => inputChannel?.RaiseMoveEvent(context);
+    private void OnJump(InputAction.CallbackContext context)                => inputChannel?.RaiseJumpEvent(context);
+    private void OnAttack(InputAction.CallbackContext context)              => inputChannel?.RaiseAttackEvent(context);
+    private void OnNavigate(InputAction.CallbackContext context)
     {
-        UIMoveInput = obj.ReadValue<Vector2>();
+        UIMoveInput = context.ReadValue<Vector2>();
+        inputChannel?.RaiseNavigateEvent(context);
     }
-
-    private void OnJump(InputAction.CallbackContext obj)
-    {
-        Debug.Log("Jump!");
-        // TODO: jump logic
-    }
-
-    private void OnAttack(InputAction.CallbackContext obj)
-    {
-        Debug.Log("Attack!");
-        // TODO: attack logic
-    }
-
-    private void OnHide(InputAction.CallbackContext obj)
-    {
-        Debug.Log("Hide");
-        TooltipInstance.instance.ToggleTooltip();
-    }
-
-    private void OnShowDetails(InputAction.CallbackContext obj)
-    {
-        DetailsContent.instance.ToggleByInput();
-    }
-
-    private void OnConfirm(InputAction.CallbackContext obj)
-    {
-        Debug.Log("Confirm");
-
-        // If in the detail panel, press J to skip text;
-        if (DetailsContent.instance.IsChanged2Details)
-        {
-            // TypewriterEffect.instance.ToggleSkip(); 
-            if (SequenceController.instance != null)
-            {
-                SequenceController.instance.SkipCurrentTypewriter();
-            }
-        }
-    }
-
-    private void OnToggleMenu(InputAction.CallbackContext obj)
-    {
-        if (!MenuController.instance.IsMenuOpen)
-        {
-            MenuController.instance.ToggleMenu();
-            SwitchToUI();
-        }
-        else
-        {
-            MenuController.instance.ToggleMenu();
-            SwitchToPlayer();
-        }
-    }
-
-    public void OnNavigateLeft(InputAction.CallbackContext obj)
-    {
-        if (tabsManager != null && MenuController.instance.IsMenuOpen)
-        {
-            tabsManager.NavigateTabs(-1);
-        }
-    }
-
-    public void OnNavigateRight(InputAction.CallbackContext obj)
-    {
-        if (tabsManager != null && MenuController.instance.IsMenuOpen)
-        {
-            tabsManager.NavigateTabs(1);
-        }
-    }
-
-    public void MouseMovedEvent()
-    {
-        OnMouseMovedAction?.Invoke();
-    }
+    private void OnNavigateLeft(InputAction.CallbackContext context)        => inputChannel?.RaiseNavigateLeftEvent(context);
+    private void OnNavigateRight(InputAction.CallbackContext context)       => inputChannel?.RaiseNavigateRightEvent(context);
+    private void OnConfirm(InputAction.CallbackContext context)             => inputChannel?.RaiseConfirmEvent(context);
+    private void OnShowDetails(InputAction.CallbackContext context)         => inputChannel?.RaiseShowDetailsEvent(context);
+    private void OnHide(InputAction.CallbackContext context)                => inputChannel?.RaiseHideEvent(context);
+    private void OnToggleMenu(InputAction.CallbackContext context)          => inputChannel?.RaiseToggleMenuEvent(context);
+   
     #endregion
 }

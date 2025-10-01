@@ -1,11 +1,14 @@
 using InstanceResetToDefault;
+using System;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
 public class MenuController : MonoBehaviour
 {
-    public static MenuController instance;
+    [Header("Listen to")]
+    [SerializeField] private InputEventChannel inputChannel;
 
     [Header("Core UI References")]
     [SerializeField] private GameObject _canvasObj;
@@ -21,9 +24,6 @@ public class MenuController : MonoBehaviour
 
     private void Awake()
     {
-        if (instance == null) instance = this;
-        else if (instance != this) { Destroy(gameObject); return; }
-
         // Subscribe to item addition, deletion, and selection events
         InventoryManager.instance.OnItemAdded += HandleInventoryDataChanged;
         InventoryManager.instance.OnItemRemoved += HandleInventoryDataChanged;
@@ -35,6 +35,22 @@ public class MenuController : MonoBehaviour
         IsMenuOpen = false;
     }
 
+    private void OnEnable()
+    {
+        if (inputChannel != null)
+        {
+            inputChannel.OnToggleMenu += HandleToggleMenu;
+        }
+    }
+
+    private void OnDisable()
+    {
+        if (inputChannel != null)
+        {
+            inputChannel.OnToggleMenu -= HandleToggleMenu;
+        }
+    }
+
     private void Update()
     {
         if (!IsMenuOpen) return;
@@ -43,6 +59,11 @@ public class MenuController : MonoBehaviour
         {
             _navigationHandler.HandleNavigationInput();
         }
+    }
+
+    private void HandleToggleMenu(InputAction.CallbackContext obj)
+    {
+        ToggleMenu();
     }
 
     public void ToggleMenu()
@@ -56,6 +77,11 @@ public class MenuController : MonoBehaviour
             SingletonResetManager.Instance.ResetAllSingletons();
             _stateManager.ClearSelection();
             HandleInventoryDataChanged();
+
+            if (UserInput.instance != null)
+            {
+                UserInput.instance.SwitchToUI();
+            }
         }
         else
         {
@@ -66,7 +92,13 @@ public class MenuController : MonoBehaviour
             }
             EventSystem.current.SetSelectedGameObject(null);
             _canvasObj.SetActive(false);
+
+            if (UserInput.instance != null)
+            {
+                UserInput.instance.SwitchToPlayer();
+            }
         }
+
     }
 
     // Filter the inventory according to item categories

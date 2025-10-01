@@ -11,7 +11,7 @@ public class InventorySlotUI : MonoBehaviour, ISelectHandler, IDeselectHandler
     [SerializeField] Image icon;
     [SerializeField] TMP_Text stackCountText;
 
-    private Transform inventoryPanel; // 物品栏根节点
+    private Transform inventoryPanel; // inventory root
 
     public InventorySlot slot; // data structure
 

@@ -113,6 +113,9 @@ public class TypewriterEffect : MonoBehaviour, IResettable
 
     private IEnumerator Typewriter()
     {
+        // avoid race condition
+        _textBox.ForceMeshUpdate();
+
         TMP_TextInfo textInfo = _textBox.textInfo;
         // _textBox.ForceMeshUpdate();
         Debug.Log("textInfo: " + textInfo.characterCount);

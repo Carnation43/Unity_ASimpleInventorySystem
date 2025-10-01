@@ -5,10 +5,14 @@ using UnityEngine;
 using UnityEngine.UI;
 using DG.Tweening;
 using InstanceResetToDefault;
+using UnityEngine.InputSystem;
 
 public class TooltipInstance : MonoBehaviour, IResettable
 {
     public static TooltipInstance instance;
+
+    [Header("Listen to")]
+    [SerializeField] private InputEventChannel inputChannel;
 
     [Header("Components")]
     [SerializeField] TMP_Text title;
@@ -59,6 +63,11 @@ public class TooltipInstance : MonoBehaviour, IResettable
         {
             SingletonResetManager.Instance.Register(this);
         }
+
+        if (inputChannel != null)
+        {
+            inputChannel.OnHide += HandleHide;
+        }
     }
 
     private void OnDisable()
@@ -66,6 +75,11 @@ public class TooltipInstance : MonoBehaviour, IResettable
         if (SingletonResetManager.Instance != null)
         {
             SingletonResetManager.Instance.UnRegister(this);
+        }
+
+        if (inputChannel != null)
+        {
+            inputChannel.OnHide -= HandleHide;
         }
     }
 
@@ -77,6 +91,11 @@ public class TooltipInstance : MonoBehaviour, IResettable
             tooltipRectTransform.position = Vector3.Lerp(tooltipRectTransform.position, _trackedRectTransform.position, Time.deltaTime * 15);
         }
         CalculatePivotPosition();
+    }
+
+    private void HandleHide(InputAction.CallbackContext context)
+    {
+        ToggleTooltip();
     }
 
     public void Show(RectTransform _rectTransform)

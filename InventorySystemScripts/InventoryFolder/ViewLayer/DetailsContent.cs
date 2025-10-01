@@ -6,10 +6,15 @@ using UnityEngine.EventSystems;
 using UnityEngine.UI;   
 using InstanceResetToDefault;
 using TMPro;
+using UnityEngine.InputSystem;
+using System;
 
 public class DetailsContent : MonoBehaviour, IResettable
 {
     public static DetailsContent instance;
+
+    [Header("Listening To")]
+    [SerializeField] private InputEventChannel inputChannel;
 
     [Header("Panels")]
     [SerializeField] private GameObject levelPanel1_Go;       // Upgrade panel
@@ -46,6 +51,11 @@ public class DetailsContent : MonoBehaviour, IResettable
         {
             SingletonResetManager.Instance.Register(this);
         }
+        if (inputChannel != null)
+        {
+            inputChannel.OnShowDetails += HandleShowDetails;
+            inputChannel.OnConfirm += HandleSkipDetails;
+        }
         ResetToDefaultState();
     }
 
@@ -54,6 +64,11 @@ public class DetailsContent : MonoBehaviour, IResettable
         if (SingletonResetManager.Instance != null)
         {
             SingletonResetManager.Instance.UnRegister(this);
+        }
+        if (inputChannel != null)
+        {
+            inputChannel.OnShowDetails -= HandleShowDetails;
+            inputChannel.OnConfirm -= HandleSkipDetails;
         }
     }
 
@@ -67,6 +82,22 @@ public class DetailsContent : MonoBehaviour, IResettable
             detailsContent_cg2.alpha = 0;
             detailsContent_Go.SetActive(false);
         }
+    }
+
+    private void HandleSkipDetails(InputAction.CallbackContext context)
+    {
+        if (IsChanged2Details)
+        {
+            if (SequenceController.instance != null)
+            {
+                SequenceController.instance.SkipCurrentTypewriter();
+            }
+        }
+    }
+
+    private void HandleShowDetails(InputAction.CallbackContext context)
+    {
+        ToggleByInput();
     }
 
     /// <summary>
@@ -179,7 +210,11 @@ public class DetailsContent : MonoBehaviour, IResettable
         if (itemNameText != null) itemNameText.text = item.itemName;
         if (specificDescriptionText != null) specificDescriptionText.text = item.specificDescription;
         if (storyDescriptionText != null) storyDescriptionText.text = item.storyDescription;
- 
+
+        // avoid race condition
+        if (specificDescriptionText != null) specificDescriptionText.maxVisibleCharacters = 0;
+        if (storyDescriptionText != null) storyDescriptionText.maxVisibleCharacters = 0;
+
         // Reset and start the typewriter sequence
         if (SequenceController.instance != null)
         {

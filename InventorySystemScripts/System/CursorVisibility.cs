@@ -5,23 +5,38 @@ using UnityEngine.InputSystem;
 
 public class CursorVisibility : MonoBehaviour
 {
-
     private bool firstMenuOpen = true;
+
+    [Header("Listening To")]
+    [SerializeField] private InputEventChannel inputChannel;
+
+    [SerializeField] private MenuController menu;
 
     private void OnEnable()
     {
-        UserInput.OnMouseMovedAction += ShowCursor;
+        if (inputChannel != null)
+        {
+            inputChannel.OnMouseMoved += HandleMouseMoved;
+        }
     }
 
     private void OnDisable()
     {
-        UserInput.OnMouseMovedAction -= ShowCursor;
+        if (inputChannel != null)
+        {
+            inputChannel.OnMouseMoved -= HandleMouseMoved;
+        }
+    }
+
+    private void HandleMouseMoved(Vector2 position)
+    {
+        ShowCursor();
     }
 
     private void Update()
     {
 
-        if (MenuController.instance.IsMenuOpen)
+        if (menu.IsMenuOpen && menu != null)
         {
             if (firstMenuOpen)
             {

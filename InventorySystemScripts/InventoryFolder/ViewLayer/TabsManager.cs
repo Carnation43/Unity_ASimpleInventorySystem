@@ -6,9 +6,13 @@ using UnityEngine.Events;
 using UnityEngine.UI;
 using TMPro;
 using InstanceResetToDefault;
+using UnityEngine.InputSystem;
 
 public class TabsManager : MonoBehaviour, IResettable
 {
+    [Header("Listening To")]
+    [SerializeField] private InputEventChannel inputChannel;
+
     [SerializeField] UnityEvent<int> onTabSelected;
 
     [Header("Visual Effect Components")]
@@ -17,7 +21,7 @@ public class TabsManager : MonoBehaviour, IResettable
     [SerializeField] Image rightArrow;
     [SerializeField] TextMeshProUGUI subheading;
 
-    Tab[] tabs;
+    public Tab[] tabs;
 
     public int currentTabIndex { get; private set; } = 0;
 
@@ -37,6 +41,11 @@ public class TabsManager : MonoBehaviour, IResettable
         {
             SingletonResetManager.Instance.Register(this);
         }
+        if (inputChannel != null)
+        {
+            inputChannel.OnNavigateLeft += HandleNavigateLeft;
+            inputChannel.OnNavigateRight += HandleNavigateRight;
+        }
     }
 
     private void OnDisable()
@@ -44,6 +53,11 @@ public class TabsManager : MonoBehaviour, IResettable
         if (SingletonResetManager.Instance != null)
         {
             SingletonResetManager.Instance.UnRegister(this);
+        }
+        if (inputChannel != null)
+        {
+            inputChannel.OnNavigateLeft -= HandleNavigateLeft;
+            inputChannel.OnNavigateRight -= HandleNavigateRight;
         }
     }
 
@@ -54,9 +68,23 @@ public class TabsManager : MonoBehaviour, IResettable
         {
             LayoutRebuilder.ForceRebuildLayoutImmediate(selectBackground.transform.parent as RectTransform);
         }
+
+        if (tabs != null && tabs.Length > 0)
+        {
+            SelectTab(tabs[0], false);
+        }
     }
 
-    
+    private void HandleNavigateLeft(InputAction.CallbackContext context)
+    {
+        NavigateTabs(-1);
+    }
+
+    private void HandleNavigateRight(InputAction.CallbackContext context)
+    {
+        NavigateTabs(1);
+    }
+
     public void SelectTab(Tab selectedTab, bool animate = true)
     {
         int selectedSiblingIndex = -1;
@@ -85,7 +113,7 @@ public class TabsManager : MonoBehaviour, IResettable
             }
             else 
             {
-                selectBackground.rectTransform.pivot = selectedTab.gameObject.GetComponent<RectTransform>().pivot;
+                selectBackground.transform.position = selectedTab.transform.position;
             }
         }
         onTabSelected?.Invoke(selectedSiblingIndex - 1); // Subtracting 1 is because selectBackground occupies the position of Sibling Index 0. 
