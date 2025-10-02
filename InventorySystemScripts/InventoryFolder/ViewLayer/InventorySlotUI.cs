@@ -5,15 +5,21 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
 
+/// <summary>
+/// Controls the visual representation of a single inventory slot in the UI.
+/// It takes an InventorySlot data object and updates its own UI components (icon, text, etc.) to match.
+/// It also handles UI events like Select and Deselect to interact with other systems like the Tooltip.
+/// </summary>
 public class InventorySlotUI : MonoBehaviour, ISelectHandler, IDeselectHandler
 {
     [Header("Componentes")]
     [SerializeField] Image icon;
     [SerializeField] TMP_Text stackCountText;
+    [SerializeField] GameObject equippedIndicator;
 
-    private Transform inventoryPanel; // inventory root
+    private Transform inventoryPanel; // inventory root, used for tooltip logic
 
-    public InventorySlot slot; // data structure
+    public InventorySlot slot; // The data object that this UI slot is currently representing
 
     private void Awake()
     {
@@ -35,6 +41,11 @@ public class InventorySlotUI : MonoBehaviour, ISelectHandler, IDeselectHandler
 
         stackCountText.text = newItem.count.ToString();
         stackCountText.gameObject.SetActive(newItem.count > 1);
+
+        if (equippedIndicator != null)
+        {
+            equippedIndicator.SetActive(newItem.isEquipped);
+        }
     }
 
     public void OnDeselect(BaseEventData eventData)
@@ -43,6 +54,9 @@ public class InventorySlotUI : MonoBehaviour, ISelectHandler, IDeselectHandler
         StartCoroutine(DelayedHide());
     }
 
+    /// <summary>
+    /// Avoid possible tooltip flickering effects
+    /// </summary>
     private IEnumerator DelayedHide()
     {
         // wait EventSystem updating
@@ -50,6 +64,7 @@ public class InventorySlotUI : MonoBehaviour, ISelectHandler, IDeselectHandler
 
         var current = EventSystem.current.currentSelectedGameObject;
 
+        // Determine whether cursor is in the inventory panel.
         if (current != null && current.transform.IsChildOf(inventoryPanel))
         {
             // still in the inventory -> do not hide

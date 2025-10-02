@@ -6,10 +6,12 @@ public class InventorySlot
 {
     public Item item;
     public int count;
+    public bool isEquipped;
 
     public InventorySlot(Item item)
     {
         this.item = item;
-        count = 1;
+        this.count = 1;
+        this.isEquipped = false;
     }
 }

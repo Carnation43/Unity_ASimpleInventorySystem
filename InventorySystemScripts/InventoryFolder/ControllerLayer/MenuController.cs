@@ -21,12 +21,15 @@ public class MenuController : MonoBehaviour
     [SerializeField] private TabsManager _tabsManager;
 
     public bool IsMenuOpen { get; private set; }
+    private bool _isSwitchingTabs = false;
+    private bool _isOpeningMenu = false;
 
     private void Awake()
     {
         // Subscribe to item addition, deletion, and selection events
         InventoryManager.instance.OnItemAdded += HandleInventoryDataChanged;
         InventoryManager.instance.OnItemRemoved += HandleInventoryDataChanged;
+        InventoryManager.instance.OnInventoryUpdated += HandleInventoryDataChanged;
         ItemsIconAnimationController.OnItemSelected += _stateManager.OnItemSelected;
 
         _navigationHandler.Initialize(_stateManager, _viewController, _group);
@@ -72,6 +75,7 @@ public class MenuController : MonoBehaviour
 
         if (IsMenuOpen)
         {
+            _isOpeningMenu = true;
             _canvasObj.SetActive(true);
             // default reset
             SingletonResetManager.Instance.ResetAllSingletons();
@@ -82,6 +86,7 @@ public class MenuController : MonoBehaviour
             {
                 UserInput.instance.SwitchToUI();
             }
+            _isOpeningMenu = false;
         }
         else
         {
@@ -92,6 +97,7 @@ public class MenuController : MonoBehaviour
             }
             EventSystem.current.SetSelectedGameObject(null);
             _canvasObj.SetActive(false);
+            _isSwitchingTabs = false;
 
             if (UserInput.instance != null)
             {
@@ -102,7 +108,7 @@ public class MenuController : MonoBehaviour
     }
 
     // Filter the inventory according to item categories
-    public void ChangeFilter(int id)
+    public void ChangeFilter(int id, bool resetSelection)
     {
         var items = InventoryManager.instance.inventory;
         if (id != 0)
@@ -110,13 +116,32 @@ public class MenuController : MonoBehaviour
             var category = (ItemCategory)(id - 1);
             items = InventoryManager.instance.inventory.FindAll(x => x.item.category == category);
         }
-        _viewController.RefreshInventoryGrid(items);
+
+        int direction = (_isSwitchingTabs && !_isOpeningMenu) ? _tabsManager.navigationDirection : 0;
+        _viewController.AnimateAndRefresh(items, resetSelection, direction);
+        //_viewController.RefreshInventoryGrid(items, resetSelection); // replace it with new method
+    }
+
+    /// <summary>
+    /// This method is called by an event from TabsManager when a tab is switched.
+    /// It sets the flag to true before calling ChangeFilter to ensure animation plays.
+    /// </summary>
+    public void OnTabSwitched(int tabId)
+    {
+        if (TooltipInstance.instance != null)
+        {
+            TooltipInstance.instance._trackedRectTransform = null; // stop tracing
+            TooltipInstance.instance.Hide(); // hide tooltip when change the tab
+        }
+        _isSwitchingTabs = true;
+        ChangeFilter(tabId, true);
+        _isSwitchingTabs = false;
     }
 
     private void HandleInventoryDataChanged()
     {
         if (!IsMenuOpen) return;
-        if (_tabsManager != null) ChangeFilter(_tabsManager.currentTabIndex);
+        if (_tabsManager != null) ChangeFilter(_tabsManager.currentTabIndex, false);
     }
 
     private void OnDestroy()
@@ -125,6 +150,7 @@ public class MenuController : MonoBehaviour
         {
             InventoryManager.instance.OnItemAdded -= HandleInventoryDataChanged;
             InventoryManager.instance.OnItemRemoved -= HandleInventoryDataChanged;
+            InventoryManager.instance.OnInventoryUpdated -= HandleInventoryDataChanged;
         }
         ItemsIconAnimationController.OnItemSelected -= _stateManager.OnItemSelected;
     }

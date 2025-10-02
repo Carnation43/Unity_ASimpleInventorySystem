@@ -33,8 +33,10 @@ public class TooltipInstance : MonoBehaviour, IResettable
     [SerializeField] TMP_Text defenceCorrectionValue;       // Not set for the time being
     [SerializeField] GameObject hpGo;
     [SerializeField] TMP_Text hpValue;
-
     [SerializeField] TMP_Text description;
+
+    [Header("Dependencies")]
+    [SerializeField] private InventoryAnimator inventoryAnimator;
 
     CanvasGroup canvasGroup;
 
@@ -88,7 +90,16 @@ public class TooltipInstance : MonoBehaviour, IResettable
      
         if (_trackedRectTransform != null)
         {
-            tooltipRectTransform.position = Vector3.Lerp(tooltipRectTransform.position, _trackedRectTransform.position, Time.deltaTime * 15);
+            if (inventoryAnimator != null && inventoryAnimator.IsAnimating)
+            {
+                // type A: When change the filter page
+                tooltipRectTransform.position = _trackedRectTransform.position;
+            }
+            else
+            {
+                // type B: When navigate in the inventory
+                tooltipRectTransform.position = Vector3.Lerp(tooltipRectTransform.position, _trackedRectTransform.position, Time.deltaTime * 15f);
+            }
         }
         CalculatePivotPosition();
     }
@@ -106,7 +117,7 @@ public class TooltipInstance : MonoBehaviour, IResettable
 
         if (IsHidden) return;
 
-        if (canvasGroup.alpha == 0)
+        if (canvasGroup.alpha < 1f)
         {
             tooltipRectTransform.position = _rectTransform.position;
             canvasGroup.DOFade(1, 0.15f); 

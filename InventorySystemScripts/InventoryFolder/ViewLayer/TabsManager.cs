@@ -8,22 +8,29 @@ using TMPro;
 using InstanceResetToDefault;
 using UnityEngine.InputSystem;
 
+/// <summary>
+/// Manages the behaivor of the tab group in the inventory menu.
+/// It handles the selection, navigation via input, and visual feedback like animations and cooldowns.
+/// </summary>
 public class TabsManager : MonoBehaviour, IResettable
 {
     [Header("Listening To")]
     [SerializeField] private InputEventChannel inputChannel;
 
-    [SerializeField] UnityEvent<int> onTabSelected;
+    [SerializeField] UnityEvent<int> onTabSelected; 
 
     [Header("Visual Effect Components")]
     [SerializeField] Image selectBackground;
     [SerializeField] Image leftArrow;
     [SerializeField] Image rightArrow;
     [SerializeField] TextMeshProUGUI subheading;
+    [SerializeField] float cooldownDuration = 0.2f; // used to avoid pressing consecutively
 
     public Tab[] tabs;
 
     public int currentTabIndex { get; private set; } = 0;
+    public int navigationDirection { get; private set; } = 0; // the track for navigating left or right
+    private bool _isCoolingDown = false; // a flag to prevent input when an animation is in progress
 
     private void Awake()
     {
@@ -75,6 +82,13 @@ public class TabsManager : MonoBehaviour, IResettable
         }
     }
 
+    private IEnumerator CoolingDownCoroutine()
+    {
+        _isCoolingDown = true;
+        yield return new WaitForSeconds(cooldownDuration);
+        _isCoolingDown = false;
+    }
+
     private void HandleNavigateLeft(InputAction.CallbackContext context)
     {
         NavigateTabs(-1);
@@ -88,6 +102,26 @@ public class TabsManager : MonoBehaviour, IResettable
     public void SelectTab(Tab selectedTab, bool animate = true)
     {
         int selectedSiblingIndex = -1;
+
+        // ---------------- record move direction -------------------
+        int newIndex = -1;
+        for(int i = 0; i < tabs.Length; i++)
+        {
+            if(tabs[i] == selectedTab)
+            {
+                newIndex = i;
+                break;
+            }
+        }
+        if(newIndex != currentTabIndex)
+        {
+            navigationDirection = newIndex > currentTabIndex ? 1 : -1;
+        }
+        else
+        {
+            navigationDirection = 0;
+        }
+        // ----------------------------------------------------------
 
         for (int i = 0; i < tabs.Length; i++)
         {
@@ -133,6 +167,8 @@ public class TabsManager : MonoBehaviour, IResettable
 
         if (newIndex != currentTabIndex)
         {
+            if (_isCoolingDown) return;
+            StartCoroutine(CoolingDownCoroutine());
             SelectTab(tabs[newIndex], true); // play animation when navigating inventory
         }
 
@@ -176,5 +212,8 @@ public class TabsManager : MonoBehaviour, IResettable
     public void ResetToDefaultState()
     {
         SelectTab(tabs[0], false);
+        _isCoolingDown = false;
+        currentTabIndex = 0;
+        navigationDirection = 0;
     }
 }
