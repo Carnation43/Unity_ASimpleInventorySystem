@@ -17,6 +17,7 @@ public class InventoryView : MonoBehaviour
     public static InventoryView instance;
 
     [Header("View References")]
+    [SerializeField] private GameObject _overlay;            // show overlay when open the radial menu
     [SerializeField] private GameObject _itemSlotPrefab;
     [SerializeField] private Transform _itemParentTransform; // the parent transform where all item slots will be instantiated
     [SerializeField] private int _extraEmptySlots = 5;
@@ -30,6 +31,15 @@ public class InventoryView : MonoBehaviour
     [Header("Animation")]
     [SerializeField] private InventoryAnimator _inventoryAnimator;
 
+    [Header("Dependencies")]
+    [SerializeField] private RadialMenuModel _radialMenuModel;
+    [SerializeField] private MenuStateManager _menuStateManager;
+
+    private Transform _originalParent;                       // Remember the original parent container
+    private int _originalIndex;                              // Remember the original arrangement position
+    private GameObject _currentSelected;
+    private GameObject _placeholder;                         // placeholder object
+
     private Coroutine _selectFirstItemCoroutine;
     private Coroutine _animationCoroutine;
 
@@ -40,6 +50,67 @@ public class InventoryView : MonoBehaviour
             instance = this;
         }
         _inventoryAnimator.Initialize(_itemParentTransform);
+    }
+
+    private void OnEnable()
+    {
+        if (_radialMenuModel != null)
+        {
+            _radialMenuModel.OnMenuStateChanged += HandleRadialMenuStateChanged;
+        }
+    }
+
+    private void OnDisable()
+    {
+        if (_radialMenuModel != null)
+        {
+            _radialMenuModel.OnMenuStateChanged -= HandleRadialMenuStateChanged;
+        }
+    }
+
+    /// <summary>
+    /// The mask event is triggered when the radial menu is opened or closed.
+    /// </summary>
+    /// <param name="isOpen"></param>
+    private void HandleRadialMenuStateChanged(bool isOpen)
+    {
+        if (_overlay == null) return;
+
+        if (isOpen)
+        {
+            _overlay.SetActive(true);
+            _currentSelected = _menuStateManager.LastItemSelected;
+
+            if(_currentSelected != null)
+            {
+                _placeholder = new GameObject("InventorySlot_PlaceHolder");
+                _placeholder.AddComponent<RectTransform>();
+                _placeholder.transform.SetParent(_itemParentTransform, false);
+                _placeholder.transform.SetSiblingIndex(_currentSelected.transform.GetSiblingIndex());
+
+                _originalParent = _currentSelected.transform.parent;
+                _originalIndex = _currentSelected.transform.GetSiblingIndex();
+
+                // Move the position in the UI
+                _currentSelected.transform.SetParent(_overlay.transform.parent, true);
+                _currentSelected.transform.SetAsLastSibling();
+            }
+        }
+        else
+        {
+            _overlay.SetActive(false);
+
+            if(_currentSelected != null && _originalParent != null)
+            {
+                _currentSelected.transform.SetParent(_originalParent, true);
+                _currentSelected.transform.SetSiblingIndex(_originalIndex);
+
+                Destroy(_placeholder);
+            }
+
+            _currentSelected = null;
+            _originalParent = null;
+        }
     }
 
     /// <summary>
@@ -227,13 +298,13 @@ public class InventoryView : MonoBehaviour
             else
             {
                 EventSystem.current.SetSelectedGameObject(null);
-                TooltipInstance.instance.Hide();
+                TooltipViewController.instance.HideTooltip();
             }
         }
         else
         {
             EventSystem.current.SetSelectedGameObject(null);
-            TooltipInstance.instance.Hide();
+            TooltipViewController.instance.HideTooltip();
         }
     }
 }

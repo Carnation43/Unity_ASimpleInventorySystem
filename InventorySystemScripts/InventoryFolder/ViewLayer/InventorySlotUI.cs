@@ -50,8 +50,27 @@ public class InventorySlotUI : MonoBehaviour, ISelectHandler, IDeselectHandler
 
     public void OnDeselect(BaseEventData eventData)
     {
-        TooltipInstance.instance._trackedRectTransform = null;
+        if (TooltipRaycastTarget.IsPointerOver)
+        {
+            StartCoroutine(ReselectAfterFrame());
+        }
+        // TooltipInstance.instance._trackedRectTransform = null;
         StartCoroutine(DelayedHide());
+    }
+
+    /// <summary>
+    /// Avoid interrupting the atomic operation of selecting the current item
+    /// </summary>
+    private IEnumerator ReselectAfterFrame()
+    {
+        // Wait until the camera and UI rendering of the current frame
+        // is completed before reselecting the current item.
+        yield return new WaitForEndOfFrame();
+
+        if (EventSystem.current.currentSelectedGameObject == null && gameObject.activeInHierarchy)
+        {
+            EventSystem.current.SetSelectedGameObject(gameObject);
+        }
     }
 
     /// <summary>
@@ -72,7 +91,7 @@ public class InventorySlotUI : MonoBehaviour, ISelectHandler, IDeselectHandler
         }
 
         // exit tyhe inventory -> hide tooltip
-        TooltipInstance.instance.Hide();
+        TooltipViewController.instance.HideTooltip();
         
     }
 
@@ -93,11 +112,12 @@ public class InventorySlotUI : MonoBehaviour, ISelectHandler, IDeselectHandler
               *  //            $"(ID={EventSystem.current.currentSelectedGameObject?.GetInstanceID()})");
               *  // Debug.Log("current select: " + slot.item.name);
               */
-            
+
             // active tooltip
-            TooltipInstance.instance.setTooltip(slot);
-            TooltipInstance.instance._trackedRectTransform = icon.rectTransform;
-            TooltipInstance.instance.Show(icon.rectTransform);
+            if (TooltipViewController.instance != null)
+            {
+                TooltipViewController.instance.ShowTooltip(slot, icon.rectTransform);
+            }
 
             // If the details panel is currently open, update its content
             if (DetailsContent.instance != null && DetailsContent.instance.IsChanged2Details)

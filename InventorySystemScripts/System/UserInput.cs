@@ -12,201 +12,116 @@ public class UserInput : MonoBehaviour
     [Header("Broadcasting On")]
     [SerializeField] private InputEventChannel inputChannel;
 
-    [Header("References")]
-    [SerializeField] private TabsManager tabsManager;
-
     public static PlayerInput playerInput;
     public static Vector2 UIMoveInput;
 
-    public delegate void MouseMoveAction();
-    public static event MouseMoveAction OnMouseMovedAction;
     private Vector2 _lastMousePos;      // track last mouse position
-
-    [Obsolete("UserInput.OnNavigatePerformed is deprecated.")]
-    public static event Action OnNavigatePerformed;
-
-    // Player Actions
-    private InputAction _moveAction;
-    private InputAction _jumpAction;
-    private InputAction _attackAction;
-
-    // UI Actions
-    private InputAction _navigateAction;
-    private InputAction _navigateLeftAction;
-    private InputAction _navigateRightAction;
-    private InputAction _confirmAction;
-    private InputAction _showDetailsAction;
-    private InputAction _hideAction;
-
-    // Global Actions
-    private InputAction _toggleMenuAction;
     private InputAction _mouseAction;
 
-    
     private void Awake()
     {
         if (instance == null) instance = this;
         else if (instance != this) { Destroy(gameObject); return; }
         playerInput = GetComponent<PlayerInput>();
-        SetupActions();
     }
 
     private void Start()
     {
         playerInput.SwitchCurrentActionMap("Player");
         // RebindActions();
-    }
-
-    private void OnEnable()
-    {
-        BindGlobalActions();
-
-        if (playerInput.currentActionMap.name == "UI")
-            BindUIActions();
-        else
-            BindPlayerActions();
-    }
-
-    private void OnDisable()
-    {
-        UnbindGlobalActions();
-        UnbindPlayerActions();
-        UnbindUIActions();
+        BindMouseAction();
     }
 
     private void Update()
     {
-        Vector2 currentMousePos = _mouseAction.ReadValue<Vector2>();
-
-        if (currentMousePos != _lastMousePos)
+        if (_mouseAction != null)
         {
-            inputChannel?.RaiseMouseMovedEvent(currentMousePos);
-
-            OnMouseMovedAction?.Invoke();
+            Vector2 currentMousePos = _mouseAction.ReadValue<Vector2>();
+            if (currentMousePos != _lastMousePos)
+            {
+                inputChannel?.RaiseMouseMovedEvent(currentMousePos);
+            }
+            _lastMousePos = currentMousePos;
         }
-
-        _lastMousePos = currentMousePos;
-
-        // Debug.Log($"MousePos: {MousePos}");
     }
 
-
-    // When adding new actions, map it to the actions in the new Input System
-    // For global operations, place the configuration in the Global binding function.
-    private void SetupActions()
+    public void SwitchActionMap(string mapName)
     {
-        // Player
-        _moveAction                      = playerInput.actions["Move"];
-        _jumpAction                      = playerInput.actions["Jump"];
-        _attackAction                    = playerInput.actions["Attack"];
+        playerInput.SwitchCurrentActionMap(mapName);
+        Debug.Log($"Input Action Map Switched to: {mapName}");
 
-        // UI
-        _navigateAction                  = playerInput.actions["Navigate"];
-        _navigateLeftAction              = playerInput.actions["NavigateLeft"];
-        _navigateRightAction             = playerInput.actions["NavigateRight"];
-        _confirmAction                   = playerInput.actions["Confirm"];
-        _showDetailsAction               = playerInput.actions["ShowDetails"];
-        _hideAction                      = playerInput.actions["Hide"];
-
-        // Global
-        _toggleMenuAction                = playerInput.actions["ToggleMenu"];
-        _mouseAction                     = playerInput.actions["MousePosition"];
+        BindMouseAction();
     }
 
-    #region [SwitchToPlayer] & [SwitchToUI] used to change action map
-    // When resuming game, switch current action map to Player
-    public void SwitchToPlayer()
+    private void BindMouseAction()
     {
-        UnbindUIActions();
-        playerInput.SwitchCurrentActionMap("Player");
-        BindPlayerActions();
-        BindGlobalActions();
-    }
-
-    // When opening UI interface, switch current action map to UI
-    public void SwitchToUI()
-    {
-        UnbindPlayerActions();
-        playerInput.SwitchCurrentActionMap("UI");
-        BindUIActions();
-        BindGlobalActions();
-    }
-    #endregion
-
-    /// <summary>
-    /// When adding new inputs, place them in the bind function below.
-    /// </summary>
-    #region [Global]
-    private void BindGlobalActions()
-    {
-        _toggleMenuAction = playerInput.actions["ToggleMenu"];
         _mouseAction = playerInput.actions["MousePosition"];
-
-        _toggleMenuAction.performed     += OnToggleMenu;
     }
-
-    private void UnbindGlobalActions()
-    {
-        _toggleMenuAction.performed     -= OnToggleMenu;
-    }
-    #endregion
-    #region [Player]
-    private void BindPlayerActions()
-    {
-        _moveAction.performed           += OnMove;
-        _jumpAction.performed           += OnJump;
-        _attackAction.performed         += OnAttack;
-    }
-
-    private void UnbindPlayerActions()
-    {
-        _moveAction.performed           -= OnMove;
-        _jumpAction.performed           -= OnJump;
-        _attackAction.performed         -= OnAttack;
-    }
-    #endregion
-    #region [UI]
-    private void BindUIActions()
-    {
-        _navigateAction.performed       += OnNavigate;
-        _navigateLeftAction.performed   += OnNavigateLeft;
-        _navigateRightAction.performed  += OnNavigateRight;
-        _confirmAction.performed        += OnConfirm;
-        _showDetailsAction.performed    += OnShowDetails;
-        _hideAction.performed           += OnHide;
-    }
-
-    private void UnbindUIActions()
-    {
-        if(_navigateAction != null) _navigateAction.performed               -= OnNavigate;
-        if (_navigateLeftAction != null) _navigateLeftAction.performed      -= OnNavigateLeft;
-        if (_navigateRightAction != null) _navigateRightAction.performed    -= OnNavigateRight;
-        if (_confirmAction != null) _confirmAction.performed                -= OnConfirm;
-        if (_showDetailsAction != null) _showDetailsAction.performed        -= OnShowDetails;
-        if (_hideAction != null) _hideAction.performed                      -= OnHide;
-    }
-    #endregion
-
 
     /// <summary>
     /// The following is the input callback method bound through the InputAction callback
     /// Used to respond to and process player input
     /// </summary>
     #region [Input Actions Callbacks]
-    private void OnMove(InputAction.CallbackContext context)                => inputChannel?.RaiseMoveEvent(context);
-    private void OnJump(InputAction.CallbackContext context)                => inputChannel?.RaiseJumpEvent(context);
-    private void OnAttack(InputAction.CallbackContext context)              => inputChannel?.RaiseAttackEvent(context);
-    private void OnNavigate(InputAction.CallbackContext context)
+    public void OnMove(InputAction.CallbackContext context) => inputChannel?.RaiseMoveEvent(context);
+    public void OnJump(InputAction.CallbackContext context) => inputChannel?.RaiseJumpEvent(context);
+    public void OnAttack(InputAction.CallbackContext context) => inputChannel?.RaiseAttackEvent(context);
+
+    public void OnNavigate(InputAction.CallbackContext context)
     {
-        UIMoveInput = context.ReadValue<Vector2>();
+        if (context.canceled)
+        {
+            UIMoveInput = Vector2.zero;
+        }
+        else
+        {
+            UIMoveInput = context.ReadValue<Vector2>();
+        }
+        
         inputChannel?.RaiseNavigateEvent(context);
     }
-    private void OnNavigateLeft(InputAction.CallbackContext context)        => inputChannel?.RaiseNavigateLeftEvent(context);
-    private void OnNavigateRight(InputAction.CallbackContext context)       => inputChannel?.RaiseNavigateRightEvent(context);
-    private void OnConfirm(InputAction.CallbackContext context)             => inputChannel?.RaiseConfirmEvent(context);
-    private void OnShowDetails(InputAction.CallbackContext context)         => inputChannel?.RaiseShowDetailsEvent(context);
-    private void OnHide(InputAction.CallbackContext context)                => inputChannel?.RaiseHideEvent(context);
-    private void OnToggleMenu(InputAction.CallbackContext context)          => inputChannel?.RaiseToggleMenuEvent(context);
-   
+    public void OnNavigateLeft(InputAction.CallbackContext context)
+    {
+        if (context.performed) inputChannel?.RaiseNavigateLeftEvent(context);
+    }
+
+    public void OnNavigateRight(InputAction.CallbackContext context)
+    {
+        if (context.performed) inputChannel?.RaiseNavigateRightEvent(context);
+    }
+
+    public void OnConfirm(InputAction.CallbackContext context)
+    {
+        if (context.performed) inputChannel?.RaiseConfirmEvent(context);
+    }
+
+    public void OnHide(InputAction.CallbackContext context)
+    {
+        if (context.performed) inputChannel?.RaiseHideEvent(context);
+    }
+
+    public void OnSkip(InputAction.CallbackContext context)
+    {
+        if (context.performed) inputChannel?.RaiseSkipEvent(context);
+    }
+
+    public void OnToggleMenu(InputAction.CallbackContext context)
+    {
+        if (context.started) inputChannel?.RaiseToggleMenuEvent(context);
+    }
+
+    public void OnRadialMenu(InputAction.CallbackContext context)
+    {
+        // 当按住时间满足Hold Interaction的要求时，context.performed为true
+        if (context.performed)
+        {
+            inputChannel?.RaiseRadialMenuOpenEvent();
+        }
+        // 当按键松开时，context.canceled为true
+        else if (context.canceled)
+        {
+            inputChannel?.RaiseRadialMenuConfirmEvent();
+        }
+    }
     #endregion
 }

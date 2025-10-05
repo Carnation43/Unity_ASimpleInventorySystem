@@ -11,6 +11,8 @@ public class ItemsIconAnimationController : BaseIconAnimationController
 
     public override void OnSelect(BaseEventData eventData)
     {
+        if (selected) return;
+
         if (canvasGroup == null || rectTransform == null) return;
         selected = true;
 

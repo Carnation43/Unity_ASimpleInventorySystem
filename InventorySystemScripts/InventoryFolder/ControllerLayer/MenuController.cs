@@ -58,10 +58,7 @@ public class MenuController : MonoBehaviour
     {
         if (!IsMenuOpen) return;
 
-        if (EventSystem.current.currentSelectedGameObject == null && _stateManager.LastItemSelected != null)
-        {
-            _navigationHandler.HandleNavigationInput();
-        }
+        _navigationHandler.HandleNavigationInput();
     }
 
     private void HandleToggleMenu(InputAction.CallbackContext obj)
@@ -84,7 +81,7 @@ public class MenuController : MonoBehaviour
 
             if (UserInput.instance != null)
             {
-                UserInput.instance.SwitchToUI();
+                UserInput.instance.SwitchActionMap("UI_Inventory");
             }
             _isOpeningMenu = false;
         }
@@ -101,7 +98,7 @@ public class MenuController : MonoBehaviour
 
             if (UserInput.instance != null)
             {
-                UserInput.instance.SwitchToPlayer();
+                UserInput.instance.SwitchActionMap("Player");
             }
         }
 
@@ -128,10 +125,9 @@ public class MenuController : MonoBehaviour
     /// </summary>
     public void OnTabSwitched(int tabId)
     {
-        if (TooltipInstance.instance != null)
+        if (TooltipViewController.instance != null)
         {
-            TooltipInstance.instance._trackedRectTransform = null; // stop tracing
-            TooltipInstance.instance.Hide(); // hide tooltip when change the tab
+            TooltipViewController.instance.HideTooltip(); // hide tooltip when change the tab
         }
         _isSwitchingTabs = true;
         ChangeFilter(tabId, true);

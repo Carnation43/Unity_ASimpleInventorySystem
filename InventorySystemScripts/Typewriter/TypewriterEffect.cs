@@ -149,8 +149,24 @@ public class TypewriterEffect : MonoBehaviour, IResettable
             CharacterRevealed?.Invoke(character);
             _currentVisibleCharacterIndex++;
         }
+    }
 
-      
+    public void ShowAllCharacters()
+    {
+        if (_typewriterCoroutine != null)
+        {
+            StopCoroutine(_typewriterCoroutine);
+            _typewriterCoroutine = null;
+        }
+
+        if (_textBox != null)
+        {
+            _textBox.ForceMeshUpdate();
+            _textBox.maxVisibleCharacters = _textBox.textInfo.characterCount;
+        }
+
+        _readyForNewText = true;
+        CurrentlySkipping = false;
     }
 
     public void ToggleSkip()

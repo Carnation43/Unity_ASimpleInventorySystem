@@ -31,42 +31,6 @@ public class EquipmentManager : MonoBehaviour
         else if (instance != null) Destroy(instance);
     }
 
-    private void OnEnable()
-    {
-        if (inputChannel != null)
-        {
-            inputChannel.OnConfirm += HandleEquipInput;
-        }    
-    }
-
-    private void OnDisable()
-    {
-        if (inputChannel != null)
-        {
-            inputChannel.OnConfirm -= HandleEquipInput;
-        }
-    }
-
-    private void HandleEquipInput(InputAction.CallbackContext obj)
-    {
-        if (stateManager.LastItemSelected == null) return;
-
-        InventorySlotUI selectedSlotUI = stateManager.LastItemSelected.GetComponent<InventorySlotUI>();
-        InventorySlot selectedSlot = selectedSlotUI?.slot;
-
-        if(selectedSlot != null && selectedSlot.item != null)
-        {
-            if (selectedSlotUI.slot.isEquipped)
-            {
-                UnEquip(selectedSlot.item.equipmentSlotType);
-            }
-            else
-            {
-                Equip(selectedSlot);
-            }
-        }
-    }
-
     public void Equip(InventorySlot slotToEquip)
     {
         if (slotToEquip == null || !slotToEquip.item.isEquippable || slotToEquip.item == null) return;

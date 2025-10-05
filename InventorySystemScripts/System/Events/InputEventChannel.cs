@@ -42,16 +42,31 @@ public class InputEventChannel : ScriptableObject
     /// </summary>
     public event Action<InputAction.CallbackContext> OnConfirm;
 
-    /// <summary>
-    /// Keyboard(K: Show Details)
-    /// Gamepad
-    /// </summary>
-    public event Action<InputAction.CallbackContext> OnShowDetails;
+    ///// <summary>
+    ///// Keyboard(K: Show Details)
+    ///// Gamepad
+    ///// </summary>
+    //public event Action<InputAction.CallbackContext> OnShowDetails;
 
     /// <summary>
     /// Keyboard(H: Hide the detail panel)
     /// </summary>
     public event Action<InputAction.CallbackContext> OnHide;
+
+    /// <summary>
+    /// Keyboard(Space: skip the dialogue)
+    /// </summary>
+    public event Action<InputAction.CallbackContext> OnSkip;
+
+    /// <summary>
+    /// Keyboard(Long press J: Open the radial menu)
+    /// </summary>
+    public event Action OnRadialMenuOpen;
+
+    /// <summary>
+    /// Keyboard(Release J: Select the radial menu item)
+    /// </summary>
+    public event Action OnRadialMenuConfirm;
     #endregion
 
     #region Player Input
@@ -89,8 +104,11 @@ public class InputEventChannel : ScriptableObject
     public void RaiseNavigateLeftEvent(InputAction.CallbackContext context)         => OnNavigateLeft?.Invoke(context);
     public void RaiseNavigateRightEvent(InputAction.CallbackContext context)        => OnNavigateRight?.Invoke(context);
     public void RaiseConfirmEvent(InputAction.CallbackContext context)              => OnConfirm?.Invoke(context);
-    public void RaiseShowDetailsEvent(InputAction.CallbackContext context)          => OnShowDetails?.Invoke(context);
+    // public void RaiseShowDetailsEvent(InputAction.CallbackContext context)          => OnShowDetails?.Invoke(context);
     public void RaiseHideEvent(InputAction.CallbackContext context)                 => OnHide?.Invoke(context);
+    public void RaiseSkipEvent(InputAction.CallbackContext context)                 => OnSkip?.Invoke(context);
+    public void RaiseRadialMenuOpenEvent()                                          => OnRadialMenuOpen?.Invoke();
+    public void RaiseRadialMenuConfirmEvent()                                       => OnRadialMenuConfirm?.Invoke();
     #endregion
 
     #region Player Action Events

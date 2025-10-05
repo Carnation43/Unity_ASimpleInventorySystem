@@ -7,6 +7,7 @@ public class EquipmentSlotUI : MonoBehaviour
 {
     private Item equippedItem;
     public Image icon;
+    public Image promptImage;
     public EquipmentSlotType equipmentSlotType;
 
     /// <summary>
@@ -19,11 +20,13 @@ public class EquipmentSlotUI : MonoBehaviour
 
         if (equippedItem)
         {
+            promptImage.enabled = false;
             icon.enabled = true;
             icon.sprite = item.sprite;
         }
         else
         {
+            promptImage.enabled = true;
             icon.enabled = false;
             icon.sprite = null;
         }

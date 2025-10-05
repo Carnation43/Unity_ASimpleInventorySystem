@@ -90,6 +90,29 @@ public class SequenceController : MonoBehaviour, IResettable
         }
     }
 
+    public void ShowAllInstantly()
+    {
+        if (_playSequenceCoroutine != null)
+        {
+            StopCoroutine(_playSequenceCoroutine);
+            _playSequenceCoroutine = null;
+        }
+
+        foreach (var item in itemSequences)
+        {
+            if (item.target != null)
+            {
+                item.target.SetActive(true);
+            }
+            if (item.sequenceType == SequenceType.Text && item.typewriterEffect != null)
+            {
+                item.typewriterEffect.ShowAllCharacters();
+            }
+        }
+
+        _currentActiveTypewriter = null;
+        IsPlaying = false;
+    }
 
     // Summary: Resets the SequenceController to its default state.
     // This method is called when the inventory menu is closed or when a full system reset is required.

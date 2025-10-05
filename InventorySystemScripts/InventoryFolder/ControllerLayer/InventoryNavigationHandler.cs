@@ -8,6 +8,13 @@ public class InventoryNavigationHandler : MonoBehaviour
     private InventoryView _viewController;
     private GridLayoutGroup _group;
 
+    [Header("Dependencies")]
+    [SerializeField] private RadialMenuModel radialMenuModel;
+
+    [Header("Settings")]
+    [SerializeField] private float navigationCooldown = 0.2f;
+    private float _lastNavigationTime;
+
     public void Initialize(MenuStateManager stateManager, InventoryView viewController, GridLayoutGroup group)
     {
         _stateManager = stateManager;
@@ -17,11 +24,19 @@ public class InventoryNavigationHandler : MonoBehaviour
 
     public void HandleNavigationInput()
     {
+        if (radialMenuModel != null && radialMenuModel.IsOpen)
+        {
+            return;
+        }
+
         if (_stateManager.LastItemSelected == null) return;
 
         Vector2 move = UserInput.UIMoveInput;
         if (move == Vector2.zero) return;
-
+        if (Time.unscaledTime - _lastNavigationTime < navigationCooldown)
+        {
+            return; 
+        }
         int addition = 0;
 
         if (move.x > 0.5f) addition = CalculateXAddition(1);
@@ -32,6 +47,7 @@ public class InventoryNavigationHandler : MonoBehaviour
         if (addition != 0)
         {
             HandleNextItemSelection(addition);
+            _lastNavigationTime = Time.unscaledTime;
         }
     }
 

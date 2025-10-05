@@ -29,6 +29,7 @@ public class DetailsContent : MonoBehaviour, IResettable
     private CanvasGroup detailsContent_cg2;
 
     private Sequence seq;
+    private Sequence _textUpdateSequence;
     private bool isAnmating = false;
 
     /// <summary>
@@ -53,8 +54,8 @@ public class DetailsContent : MonoBehaviour, IResettable
         }
         if (inputChannel != null)
         {
-            inputChannel.OnShowDetails += HandleShowDetails;
-            inputChannel.OnConfirm += HandleSkipDetails;
+            // inputChannel.OnShowDetails += HandleShowDetails;
+            inputChannel.OnSkip += HandleSkipDetails;
         }
         ResetToDefaultState();
     }
@@ -67,8 +68,8 @@ public class DetailsContent : MonoBehaviour, IResettable
         }
         if (inputChannel != null)
         {
-            inputChannel.OnShowDetails -= HandleShowDetails;
-            inputChannel.OnConfirm -= HandleSkipDetails;
+            // inputChannel.OnShowDetails -= HandleShowDetails;
+            inputChannel.OnSkip -= HandleSkipDetails;
         }
     }
 
@@ -95,10 +96,10 @@ public class DetailsContent : MonoBehaviour, IResettable
         }
     }
 
-    private void HandleShowDetails(InputAction.CallbackContext context)
-    {
-        ToggleByInput();
-    }
+    //private void HandleShowDetails(InputAction.CallbackContext context)
+    //{
+    //    ToggleByInput();
+    //}
 
     /// <summary>
     /// Called by InputSystem callback, contains no input detection logic
@@ -115,7 +116,7 @@ public class DetailsContent : MonoBehaviour, IResettable
 
         // If currently in upgrade panel -> check whether we can enter details panel
         var selected = EventSystem.current.currentSelectedGameObject;
-        if (selected != null && !TooltipInstance.instance.IsHidden)
+        if (selected != null && !TooltipViewController.instance.IsHidden)
         {
             var slotUI = selected.GetComponent<InventorySlotUI>();
             if (slotUI != null && slotUI.slot != null)
@@ -163,10 +164,6 @@ public class DetailsContent : MonoBehaviour, IResettable
         toPanel.SetActive(true);
         toCg.alpha = 0;
 
-        Button btn = TooltipInstance.instance.detailsButton;
-        Animator anim = btn.GetComponent<Animator>();
-        anim.SetTrigger("Pressed");
-
         // Kill previous sequence
         seq?.Kill();
 
@@ -207,20 +204,58 @@ public class DetailsContent : MonoBehaviour, IResettable
             return;
         }
 
+        bool playAnimation = !IsChanged2Details;
+
         if (itemNameText != null) itemNameText.text = item.itemName;
         if (specificDescriptionText != null) specificDescriptionText.text = item.specificDescription;
         if (storyDescriptionText != null) storyDescriptionText.text = item.storyDescription;
 
-        // avoid race condition
-        if (specificDescriptionText != null) specificDescriptionText.maxVisibleCharacters = 0;
-        if (storyDescriptionText != null) storyDescriptionText.maxVisibleCharacters = 0;
-
-        // Reset and start the typewriter sequence
-        if (SequenceController.instance != null)
+        if (playAnimation)
         {
-            SequenceController.instance.ResetToDefaultState();
-            SequenceController.instance.StartPlaySequence();
+            // avoid race condition
+            if (specificDescriptionText != null) specificDescriptionText.maxVisibleCharacters = 0;
+            if (storyDescriptionText != null) storyDescriptionText.maxVisibleCharacters = 0;
+
+            // Reset and start the typewriter sequence
+            if (SequenceController.instance != null)
+            {
+                SequenceController.instance.ResetToDefaultState();
+                SequenceController.instance.StartPlaySequence();
+            }
         }
+        else
+        {
+            AnimateItemDetailsSwitch(item);
+        }
+    }
+    private void AnimateItemDetailsSwitch(Item item)
+    {
+        _textUpdateSequence?.Kill(); 
+
+        _textUpdateSequence = DOTween.Sequence();
+
+        _textUpdateSequence.Append(detailsContent_cg2.DOFade(0, 0.2f).SetEase(Ease.OutCirc));
+
+        _textUpdateSequence.AppendCallback(() => {
+            if (itemNameText != null) itemNameText.text = item.itemName;
+            if (specificDescriptionText != null)
+            {
+                specificDescriptionText.text = item.specificDescription;
+                specificDescriptionText.maxVisibleCharacters = int.MaxValue;
+            }
+            if (storyDescriptionText != null)
+            {
+                storyDescriptionText.text = item.storyDescription;
+                storyDescriptionText.maxVisibleCharacters = int.MaxValue;
+            }
+
+            if (SequenceController.instance != null)
+            {
+                SequenceController.instance.ShowAllInstantly();
+            }
+        });
+
+        _textUpdateSequence.Append(detailsContent_cg2.DOFade(1, 0.2f).SetEase(Ease.InCirc));
     }
 
     /// <summary>
