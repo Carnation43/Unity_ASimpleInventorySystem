@@ -16,6 +16,7 @@ public class RadialMenuView : MonoBehaviour
     [Header("Settings")]
     [SerializeField] private float angleBetweenPart = 10f;
     [SerializeField] private float centerDeadZoneRadius = 20f;
+    [SerializeField] private float actionZoneRadius = 150f;
     [SerializeField] private float radius = 52f;
 
     [Header("References")]
@@ -26,6 +27,9 @@ public class RadialMenuView : MonoBehaviour
     private List<RadialPartUI> _spawnParts = new List<RadialPartUI>();
     private CanvasGroup _canvasGroup;
     private float _currentFillAmount;
+
+    public float CenterDeadZoneRadius => centerDeadZoneRadius;
+    public float ActionZoneRadius => actionZoneRadius;
 
     private void Awake()
     {
@@ -87,6 +91,7 @@ public class RadialMenuView : MonoBehaviour
             if(partUI != null)
             {
                 partUI.SetIcon(_model.currentItems[i].icon);
+                partUI.SetActionText(_model.currentItems[i].actionName);
                 CalculateIconPos(numberOfRadialPart, partUI, angle);
                 partUI.UpdateVisuals(Color.white, _currentFillAmount);
 
@@ -96,7 +101,7 @@ public class RadialMenuView : MonoBehaviour
         }
     }
 
-    private void CalculateIconPos(int numberOfRadialPart, RadialPartUI icon, float angle)
+    private void CalculateIconPos(int numberOfRadialPart, RadialPartUI partUI, float angle)
     {
         // 1.Calculate the angle of each menu item (actual display + gap)
         float anglePerSlice = 360f / numberOfRadialPart;
@@ -114,11 +119,13 @@ public class RadialMenuView : MonoBehaviour
         float x = Mathf.Sin(-angleRelativeRad) * radius;
         // cos(x) = cos(-x) x¡Ê[0, PI]
         float y = Mathf.Cos(angleRelativeRad) * radius;
-        icon.iconImage.GetComponent<RectTransform>().anchoredPosition = new Vector3(x, y, 0);
+        partUI.iconImage.rectTransform.anchoredPosition = new Vector3(x, y, 0);
+        partUI.actionText.rectTransform.anchoredPosition = new Vector3(x, y, 0);
 
         // Offset the icon rotation caused by the parent object's rotation;
         // you can delete it if you don't want it.
-        icon.iconImage.GetComponent<RectTransform>().localEulerAngles = new Vector3(0, 0, -angle);
+        partUI.iconImage.rectTransform.localEulerAngles = new Vector3(0, 0, -angle);
+        partUI.actionText.rectTransform.localEulerAngles = new Vector3(0, 0, -angle);
     }
 
     private void DestroyRadialParts()
@@ -137,7 +144,16 @@ public class RadialMenuView : MonoBehaviour
         {
             bool isSelected = (i == newIndex);
 
-            _spawnParts[i].UpdateVisuals(isSelected ? Color.yellow : Color.white, _currentFillAmount);
+            _spawnParts[i].UpdateVisuals(Color.white, _currentFillAmount);
+
+            if (isSelected)
+            {
+                _spawnParts[i].AnimateSelected();
+            }
+            else
+            {
+                _spawnParts[i].AnimateDeselected();
+            }
         }
     }
 

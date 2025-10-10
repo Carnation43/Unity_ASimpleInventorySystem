@@ -25,35 +25,62 @@ public class TooltipView : MonoBehaviour
     [SerializeField] private TMP_Text hpValue;
     [SerializeField] private TMP_Text description;
 
+    [Header("Components - CorrectionValues")]
+    [SerializeField] private TMP_Text attackCorrectionValue;
+    [SerializeField] private TMP_Text defenceCorrectionValue;
+
+    // const color
+    private readonly Color positiveColor = new Color(0, 0.6f, 0, 1);
+    private readonly Color negativeColor = new Color(0.6f, 0, 0, 1);
+    private readonly Color neutralColor = Color.grey;
+
     public void SetTooltip(InventorySlot slot)
     {
+        Item item = slot.item;
+
         title.text = slot.item.itemName;
         amount.text = "Amount: " + slot.count.ToString();
+        description.text = slot.item.GeneralDescription;
 
         // stats
-        attackGo.SetActive(slot.item.attack > 0);
-        attackValue.text = slot.item.attack.ToString();
-        defenceGo.SetActive(slot.item.defence > 0);
-        defenceValue.text = slot.item.defence.ToString();
-        hpGo.SetActive(slot.item.hp != 0);
-        if (slot.item.hp > 0)
+        attackGo.SetActive(item.attack != 0);
+        attackValue.text = item.attack.ToString();
+        defenceGo.SetActive(item.defence != 0);
+        defenceValue.text = item.defence.ToString();
+        hpGo.SetActive(item.hp != 0);
+        hpValue.text = item.hp > 0 ? $"+{item.hp}" : item.hp.ToString();
+        hpValue.color = item.hp > 0 ? positiveColor : negativeColor;
+
+        if (item.isEquippable)
         {
-            hpValue.text = "+" + slot.item.hp.ToString();
-            hpValue.color = new Color(0, 0.6f, 0, 1);
+            CharacterStatsData statsData = CharacterStatsController.instance.CurrentStatsData;
+
+            // Perform prediction operations here
+            Dictionary<EquipmentSlotType, Item> predictedEquipment = new Dictionary<EquipmentSlotType, Item>(EquipmentManager.instance.equippedItems);
+
+            if (slot.isEquipped)
+            {
+                predictedEquipment.Remove(item.equipmentSlotType);
+            }
+            else
+            {
+                predictedEquipment[item.equipmentSlotType] = item;
+            }
+
+            float predictedAttack = StatsCalculator.CalculateAttackPower(statsData, predictedEquipment);
+            float predictedDefense = StatsCalculator.CalculatePhysicalDefense(statsData, predictedEquipment);
+            // Update UI
+            UpdateStatChangeUI(attackCorrectionValue, predictedAttack - statsData.attackPower);
+            UpdateStatChangeUI(defenceCorrectionValue, predictedDefense - statsData.physicalDefence);
         }
         else
         {
-            hpValue.text = slot.item.hp.ToString();
-            hpValue.color = new Color(0.6f, 0, 0, 1);
+            attackCorrectionValue.gameObject.SetActive(false);
+            defenceCorrectionValue.gameObject.SetActive(false);
         }
-
-        description.text = slot.item.GeneralDescription;
-
-        // Consumable = 1 | weapon = 2 | Equipment = 3 | Accessory = 4 | Material = 5 |
-
-        bool isEquippable = slot.item.isEquippable;
+        
         equipButton.gameObject.SetActive(true);
-        if (isEquippable)
+        if (item.isEquippable)
         {
             equipButtonText.text = slot.isEquipped ? "Unequip(J)" : "Equip(J)";
         }
@@ -67,5 +94,27 @@ public class TooltipView : MonoBehaviour
             }
         }
         LayoutRebuilder.ForceRebuildLayoutImmediate(transform as RectTransform);
+    }
+
+    private void UpdateStatChangeUI(TMP_Text correctionText, float correctionValue)
+    {
+        string formatValue = correctionValue.ToString("F1");
+        correctionText.gameObject.SetActive(true);
+
+        if(correctionValue > 0)
+        {
+            correctionText.text = $"+{formatValue}";
+            correctionText.color = positiveColor;
+        }
+        else if(correctionValue < 0)
+        {
+            correctionText.text = $"{formatValue}";
+            correctionText.color = negativeColor;
+        }
+        else 
+        {
+            correctionText.text = "0";
+            correctionText.color = neutralColor; 
+        }
     }
 }

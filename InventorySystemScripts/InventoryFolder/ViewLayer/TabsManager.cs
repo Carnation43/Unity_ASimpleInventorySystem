@@ -7,6 +7,7 @@ using UnityEngine.UI;
 using TMPro;
 using InstanceResetToDefault;
 using UnityEngine.InputSystem;
+using System;
 
 /// <summary>
 /// Manages the behaivor of the tab group in the inventory menu.
@@ -31,6 +32,7 @@ public class TabsManager : MonoBehaviour, IResettable
     public int currentTabIndex { get; private set; } = 0;
     public int navigationDirection { get; private set; } = 0; // the track for navigating left or right
     private bool _isCoolingDown = false; // a flag to prevent input when an animation is in progress
+    private bool _isInputLocked = false;
 
     private void Awake()
     {
@@ -52,6 +54,7 @@ public class TabsManager : MonoBehaviour, IResettable
         {
             inputChannel.OnNavigateLeft += HandleNavigateLeft;
             inputChannel.OnNavigateRight += HandleNavigateRight;
+            inputChannel.OnGlobalInputLock += HandleInputLock;
         }
     }
 
@@ -65,6 +68,7 @@ public class TabsManager : MonoBehaviour, IResettable
         {
             inputChannel.OnNavigateLeft -= HandleNavigateLeft;
             inputChannel.OnNavigateRight -= HandleNavigateRight;
+            inputChannel.OnGlobalInputLock -= HandleInputLock;
         }
     }
 
@@ -82,6 +86,11 @@ public class TabsManager : MonoBehaviour, IResettable
         }
     }
 
+    private void HandleInputLock(bool isLocked)
+    {
+        _isInputLocked = isLocked;
+    }
+
     private IEnumerator CoolingDownCoroutine()
     {
         _isCoolingDown = true;
@@ -91,11 +100,25 @@ public class TabsManager : MonoBehaviour, IResettable
 
     private void HandleNavigateLeft(InputAction.CallbackContext context)
     {
+        if (MenuController.instance == null || MenuController.instance.currentFocus != MenuController.MenuFocus.Inventory)
+        {
+            return;
+        }
+
+        if (_isInputLocked || UserInput.IsRadialMenuHeldDown) return;
+
         NavigateTabs(-1);
     }
 
     private void HandleNavigateRight(InputAction.CallbackContext context)
     {
+        if (MenuController.instance == null || MenuController.instance.currentFocus != MenuController.MenuFocus.Inventory)
+        {
+            return;
+        }
+
+        if (_isInputLocked || UserInput.IsRadialMenuHeldDown) return;
+
         NavigateTabs(1);
     }
 
@@ -130,7 +153,18 @@ public class TabsManager : MonoBehaviour, IResettable
                 currentTabIndex = i; // update currentTabIndex 
                 tabs[i].OnSelect();
                 selectedSiblingIndex = tabs[i].transform.GetSiblingIndex();
-                ChangeSubheadingText(selectedTab);
+                if (animate)
+                {
+                    ChangeSubheadingText(selectedTab);
+                }
+                else
+                {
+                    if (subheading != null)
+                    {
+                        subheading.text = selectedTab.category.ToString();
+                        subheading.alpha = 1;
+                    }
+                }
             }
             else
             {

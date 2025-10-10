@@ -3,6 +3,7 @@ using InstanceResetToDefault;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
 /// <summary>
@@ -16,6 +17,7 @@ public class TooltipAnimator : MonoBehaviour, IResettable
     private Sequence _currentSeq;
     private Animator _btnDetails;
     private Animator _btnConfirm;
+    private Tweener _detailsHoldTween;
 
     public bool IsAnimating { get; private set; }
     public bool IsHidden { get; private set; } = false;
@@ -34,6 +36,26 @@ public class TooltipAnimator : MonoBehaviour, IResettable
 
     public void TriggerConfirmAnimation() { if (_btnConfirm != null) _btnConfirm.SetTrigger("Pressed"); }
     public void TriggerDetailsAnimation() { if (_btnDetails != null) _btnDetails.SetTrigger("Pressed"); }
+
+    public void HandleDetailsHoldAnimation(InputAction.CallbackContext context)
+    {
+        if (_btnDetails == null) return;
+        Transform buttonTransform = _btnDetails.transform;
+        const float holdTime = 0.3f;
+
+        if (context.started)
+        {
+            _detailsHoldTween?.Kill(); 
+            _detailsHoldTween = buttonTransform.DOScale(1.1f, holdTime).SetEase(Ease.OutQuad);
+        }
+
+        if (context.performed || context.canceled)
+        {
+            _detailsHoldTween?.Kill();
+            buttonTransform.DOScale(1.0f, 0.1f);
+        }
+    }
+
 
     private void OnEnable()
     {

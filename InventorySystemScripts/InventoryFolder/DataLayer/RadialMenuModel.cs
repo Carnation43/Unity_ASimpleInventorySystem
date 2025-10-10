@@ -1,5 +1,4 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -8,6 +7,9 @@ using UnityEngine;
 /// </summary>
 public class RadialMenuModel : MonoBehaviour
 {
+    [Header("Broadcasting On")]
+    [SerializeField] private InputEventChannel inputChannel;
+
     // Events
 
     /// <summary>
@@ -62,6 +64,8 @@ public class RadialMenuModel : MonoBehaviour
         currentItems = items;
         IsOpen = true;
         OnMenuStateChanged?.Invoke(true);
+
+        inputChannel?.RaiseGlobalInputLockEvent(true);
     }
 
     public void CloseMenu()
@@ -71,6 +75,8 @@ public class RadialMenuModel : MonoBehaviour
         IsOpen = false;
         CurrentHighlightIndex = -1;
         OnMenuStateChanged?.Invoke(false);
+
+        inputChannel?.RaiseGlobalInputLockEvent(false);
     }
 
     public void ConfirmSelection()
@@ -82,6 +88,9 @@ public class RadialMenuModel : MonoBehaviour
 
         RadialMenuData selectedData = currentItems[CurrentHighlightIndex];
         Debug.Log("Clicked the radial part...");
+
+        selectedData.OnConfirmAction?.Invoke();
+
         OnItemSelected?.Invoke(selectedData);
     }
 

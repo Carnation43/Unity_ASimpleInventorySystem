@@ -18,11 +18,31 @@ public class UserInput : MonoBehaviour
     private Vector2 _lastMousePos;      // track last mouse position
     private InputAction _mouseAction;
 
+    public static bool IsRadialMenuHeldDown { get; private set; } = false;
+
+    private bool _isInputLocked = false;
+
     private void Awake()
     {
         if (instance == null) instance = this;
         else if (instance != this) { Destroy(gameObject); return; }
         playerInput = GetComponent<PlayerInput>();
+    }
+
+    private void OnEnable()
+    {
+        if (inputChannel != null)
+        {
+            inputChannel.OnGlobalInputLock += HandleInputLock;
+        }
+    }
+
+    private void OnDisable()
+    {
+        if (inputChannel != null)
+        {
+            inputChannel.OnGlobalInputLock -= HandleInputLock;
+        }
     }
 
     private void Start()
@@ -43,6 +63,11 @@ public class UserInput : MonoBehaviour
             }
             _lastMousePos = currentMousePos;
         }
+    }
+
+    private void HandleInputLock(bool isLocked)
+    {
+        _isInputLocked = isLocked;
     }
 
     public void SwitchActionMap(string mapName)
@@ -90,6 +115,11 @@ public class UserInput : MonoBehaviour
         if (context.performed) inputChannel?.RaiseNavigateRightEvent(context);
     }
 
+    public void OnShowDetails(InputAction.CallbackContext context)
+    {
+        inputChannel?.RaiseShowDetailsEvent(context);
+    }
+
     public void OnConfirm(InputAction.CallbackContext context)
     {
         if (context.performed) inputChannel?.RaiseConfirmEvent(context);
@@ -112,14 +142,28 @@ public class UserInput : MonoBehaviour
 
     public void OnRadialMenu(InputAction.CallbackContext context)
     {
-        // 当按住时间满足Hold Interaction的要求时，context.performed为true
+
+        if (_isInputLocked && !context.canceled)
+        {
+            return; 
+        }
+
+        // Need to know in a timely manner whether to start opening the menu
+        // Prevent executing other commands during the process of opening the menu
+        if (context.started)
+        {
+            IsRadialMenuHeldDown = true;
+            inputChannel?.RaiseRadialMenuOpenAnimationEvent();
+        }
+
         if (context.performed)
         {
             inputChannel?.RaiseRadialMenuOpenEvent();
         }
-        // 当按键松开时，context.canceled为true
+        
         else if (context.canceled)
         {
+            IsRadialMenuHeldDown = false;
             inputChannel?.RaiseRadialMenuConfirmEvent();
         }
     }

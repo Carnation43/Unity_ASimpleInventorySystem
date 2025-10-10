@@ -18,6 +18,7 @@ public class InventoryManager : MonoBehaviour
     public delegate void InventoryChanged();
     public event InventoryChanged OnItemAdded;
     public event InventoryChanged OnItemRemoved;
+    public event Action<InventorySlot, bool, int> OnItemConsumed; // bool to indicate if the slot is now empty
 
     public event Action OnInventoryUpdated;
 
@@ -64,9 +65,23 @@ public class InventoryManager : MonoBehaviour
         OnItemAdded?.Invoke();      // trigger event
     }
 
-    public void RemoveItem(Item oldItem)
+    public void RemoveItem(InventorySlot slot)
     {
-        inventory.Remove(new InventorySlot(oldItem));
-        OnItemRemoved?.Invoke();
+        if (slot == null || !inventory.Contains(slot)) return;
+        int slotIndex = inventory.IndexOf(slot);
+        slot.count--;
+        bool slotIsEmpty = slot.count <= 0;
+
+        OnItemConsumed?.Invoke(slot, slotIsEmpty, slotIndex);
+
+        if (slotIsEmpty)
+        { 
+            inventory.Remove(slot);
+            OnItemRemoved?.Invoke();
+        }
+        else
+        {
+            OnInventoryUpdated?.Invoke();
+        }
     }      
 }

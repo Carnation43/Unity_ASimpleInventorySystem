@@ -49,7 +49,6 @@ public class InventoryView : MonoBehaviour
         {
             instance = this;
         }
-        _inventoryAnimator.Initialize(_itemParentTransform);
     }
 
     private void OnEnable()
@@ -66,6 +65,11 @@ public class InventoryView : MonoBehaviour
         {
             _radialMenuModel.OnMenuStateChanged -= HandleRadialMenuStateChanged;
         }
+    }
+
+    private void Start()
+    {
+        _inventoryAnimator.Initialize(_itemParentTransform);
     }
 
     /// <summary>
@@ -132,6 +136,11 @@ public class InventoryView : MonoBehaviour
         if (direction == 0 || !_slotUIList.Any(s => s.gameObject.activeInHierarchy))
         {
             RefreshInventoryGrid(items, resetSelection);
+            if (resetSelection)
+            {
+                if (_selectFirstItemCoroutine != null) StopCoroutine(_selectFirstItemCoroutine);
+                _selectFirstItemCoroutine = StartCoroutine(SelectFirstItemAfterDelay(true));
+            }
             return;
         }
 
@@ -152,6 +161,16 @@ public class InventoryView : MonoBehaviour
         // start animation
         yield return StartCoroutine(_inventoryAnimator.PlaySwitchAnimation(direction, refreshAction));
 
+        if (resetSelection)
+        {
+            if (_selectFirstItemCoroutine != null)
+            {
+                StopCoroutine(_selectFirstItemCoroutine);
+            }
+
+            // Start a coroutine to select the first item after a delay
+            _selectFirstItemCoroutine = StartCoroutine(SelectFirstItemAfterDelay(resetSelection));
+        }
         _animationCoroutine = null;
     }
 
@@ -240,6 +259,16 @@ public class InventoryView : MonoBehaviour
             _slotUIList.RemoveAt(lastIndex);
         }
 
+        int lastSelectedIndex = -1;
+        if (!resetSelection && EventSystem.current.currentSelectedGameObject != null)
+        {
+            var selectedSlotUI = EventSystem.current.currentSelectedGameObject.GetComponent<InventorySlotUI>();
+            if (selectedSlotUI != null)
+            {
+                lastSelectedIndex = _slotUIList.IndexOf(selectedSlotUI);
+            }
+        }
+
         foreach (var slot in _slotUIList)
         {
             slot.gameObject.SetActive(false);
@@ -258,16 +287,18 @@ public class InventoryView : MonoBehaviour
             _slotUIList[i].Initialize(null);
         }
 
-        if (_selectFirstItemCoroutine != null)
+        for (int i = items.Count; i < neededSlots; i++)
         {
-            StopCoroutine(_selectFirstItemCoroutine);
+            _slotUIList[i].gameObject.SetActive(true);
+            _slotUIList[i].Initialize(null);
         }
-
-        // Start a coroutine to select the first item after a delay
-        _selectFirstItemCoroutine = StartCoroutine(SelectFirstItemAfterDelay(resetSelection));
+        if (!resetSelection && lastSelectedIndex != -1 && lastSelectedIndex < items.Count)
+        {
+            EventSystem.current.SetSelectedGameObject(_slotUIList[lastSelectedIndex].gameObject);
+        }
     }
 
-    private IEnumerator SelectFirstItemAfterDelay(bool forceReset)
+    public IEnumerator SelectFirstItemAfterDelay(bool forceReset)
     {
 
         yield return null;
@@ -306,5 +337,49 @@ public class InventoryView : MonoBehaviour
             EventSystem.current.SetSelectedGameObject(null);
             TooltipViewController.instance.HideTooltip();
         }
+    }
+
+    public void SelectNewItemAfterConsume(int originalIndexOfConsumedItemInView)
+    {
+        StartCoroutine(SelectNewItemCoroutine(originalIndexOfConsumedItemInView));
+    }
+
+    private IEnumerator SelectNewItemCoroutine(int originalIndex)
+    {
+        // Wait for one frame to allow Unity's UI layout system to
+        // finish destroying the old grids and rearranging the new grids.
+        yield return new WaitForEndOfFrame();
+
+        var activeItemSlots = _slotUIList
+            .Where(s => s.gameObject.activeInHierarchy && s.slot != null && s.slot.item != null)
+            .ToList();
+
+        if (activeItemSlots.Count == 0)
+        {
+            // The tooltip will be automatically hidden when no item is selected.
+            EventSystem.current.SetSelectedGameObject(null);
+            yield break;
+        }
+
+        // When the item is the last one,
+        // the Clamp function can ensure that
+        // the new index does not go out of bounds
+        // and remains the current last one.
+        int newIndexToSelect = Mathf.Clamp(originalIndex, 0, activeItemSlots.Count - 1);
+
+        // UI Component, data and new transform for obtaining the new item
+        InventorySlotUI newSlotUI = activeItemSlots[newIndexToSelect];
+        GameObject newObjectToSelect = newSlotUI.gameObject;
+        InventorySlot newSlotData = newSlotUI.slot;
+        RectTransform newIconTransform = newSlotUI.icon.rectTransform;
+
+        // force updating new contents before selecting the new item
+        if (newSlotData != null && newIconTransform != null)
+        {
+            TooltipViewController.instance.ShowTooltip(newSlotData, newIconTransform);
+        }
+
+        // Reselect
+        EventSystem.current.SetSelectedGameObject(newObjectToSelect);
     }
 }

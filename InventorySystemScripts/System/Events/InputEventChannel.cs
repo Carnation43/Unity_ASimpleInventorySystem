@@ -19,7 +19,7 @@ using UnityEngine.InputSystem;
 [CreateAssetMenu(menuName = "Events/Input Event Channel")]
 public class InputEventChannel : ScriptableObject
 {
-
+ 
     #region UI Input
     /// <summary>
     /// (WASD, arrow, leftstick: navigate)
@@ -42,11 +42,11 @@ public class InputEventChannel : ScriptableObject
     /// </summary>
     public event Action<InputAction.CallbackContext> OnConfirm;
 
-    ///// <summary>
-    ///// Keyboard(K: Show Details)
-    ///// Gamepad
-    ///// </summary>
-    //public event Action<InputAction.CallbackContext> OnShowDetails;
+    /// <summary>
+    /// Keyboard(K: Show Details)
+    /// Gamepad
+    /// </summary>
+    public event Action<InputAction.CallbackContext> OnShowDetails;
 
     /// <summary>
     /// Keyboard(H: Hide the detail panel)
@@ -98,13 +98,24 @@ public class InputEventChannel : ScriptableObject
     /// MousePosition(Used for UI)
     /// </summary>
     public event Action<Vector2> OnMouseMoved;
+    /// <summary>
+    /// UserInput Global Lock
+    /// </summary>
+    public event Action<bool> OnGlobalInputLock;
+
+    // Other Events
+
+    /// <summary>
+    /// Keyboard(Keyboard: Start holding K)
+    /// </summary>
+    public event Action OnRadialMenuHoldStart;
 
     #region UI Action Events
     public void RaiseNavigateEvent(InputAction.CallbackContext context)             => OnNavigate?.Invoke(context);
     public void RaiseNavigateLeftEvent(InputAction.CallbackContext context)         => OnNavigateLeft?.Invoke(context);
     public void RaiseNavigateRightEvent(InputAction.CallbackContext context)        => OnNavigateRight?.Invoke(context);
     public void RaiseConfirmEvent(InputAction.CallbackContext context)              => OnConfirm?.Invoke(context);
-    // public void RaiseShowDetailsEvent(InputAction.CallbackContext context)          => OnShowDetails?.Invoke(context);
+    public void RaiseShowDetailsEvent(InputAction.CallbackContext context)          => OnShowDetails?.Invoke(context);
     public void RaiseHideEvent(InputAction.CallbackContext context)                 => OnHide?.Invoke(context);
     public void RaiseSkipEvent(InputAction.CallbackContext context)                 => OnSkip?.Invoke(context);
     public void RaiseRadialMenuOpenEvent()                                          => OnRadialMenuOpen?.Invoke();
@@ -120,5 +131,10 @@ public class InputEventChannel : ScriptableObject
     #region Global Action Events
     public void RaiseToggleMenuEvent(InputAction.CallbackContext context)           => OnToggleMenu?.Invoke(context);
     public void RaiseMouseMovedEvent(Vector2 position)                              => OnMouseMoved?.Invoke(position);
+    public void RaiseGlobalInputLockEvent(bool isLocked)                            => OnGlobalInputLock?.Invoke(isLocked);
+    #endregion
+
+    #region Other Action Events
+    public void RaiseRadialMenuOpenAnimationEvent()                                 => OnRadialMenuHoldStart?.Invoke();
     #endregion
 }

@@ -64,6 +64,4 @@ public class RadialMenuAnimator : MonoBehaviour
             _currentSeq.OnComplete(() => { _view.DestroyMenuAndParts(); });
         }
     }
-
-
 }

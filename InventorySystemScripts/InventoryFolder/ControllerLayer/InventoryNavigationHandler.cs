@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -8,12 +9,10 @@ public class InventoryNavigationHandler : MonoBehaviour
     private InventoryView _viewController;
     private GridLayoutGroup _group;
 
-    [Header("Dependencies")]
-    [SerializeField] private RadialMenuModel radialMenuModel;
-
     [Header("Settings")]
-    [SerializeField] private float navigationCooldown = 0.2f;
-    private float _lastNavigationTime;
+    [SerializeField] private float navigationCooldown = 0.1f;
+
+    private Coroutine _navigationCoroutine;
 
     public void Initialize(MenuStateManager stateManager, InventoryView viewController, GridLayoutGroup group)
     {
@@ -22,34 +21,80 @@ public class InventoryNavigationHandler : MonoBehaviour
         _group = group;
     }
 
-    public void HandleNavigationInput()
+    public void MoveOneStep(Vector2 move)
     {
-        if (radialMenuModel != null && radialMenuModel.IsOpen)
-        {
-            return;
-        }
+        if (MenuController.instance == null || MenuController.instance.currentFocus != MenuController.MenuFocus.Inventory) return;
 
-        if (_stateManager.LastItemSelected == null) return;
-
-        Vector2 move = UserInput.UIMoveInput;
-        if (move == Vector2.zero) return;
-        if (Time.unscaledTime - _lastNavigationTime < navigationCooldown)
-        {
-            return; 
-        }
         int addition = 0;
 
-        if (move.x > 0.5f) addition = CalculateXAddition(1);
-        else if (move.x < -0.5f) addition = CalculateXAddition(-1);
-        else if (move.y > 0.5f) addition = CalculateYAddition(1);
-        else if (move.y < -0.5f) addition = CalculateYAddition(-1);
+        if (Mathf.Abs(move.x) > Mathf.Abs(move.y))
+        {
+            if (move.x > 0.5f) addition = CalculateXAddition(1);
+            else if (move.x < -0.5f) addition = CalculateXAddition(-1);
+        }
+        else
+        {
+            if (move.y > 0.5f) addition = CalculateYAddition(1);
+            else if (move.y < -0.5f) addition = CalculateYAddition(-1);
+        }
 
         if (addition != 0)
         {
             HandleNextItemSelection(addition);
-            _lastNavigationTime = Time.unscaledTime;
         }
     }
+
+    public void StartContinuousNavigation(Vector2 move)
+    {
+        if (_navigationCoroutine != null)
+        {
+            StopCoroutine(_navigationCoroutine);
+        }
+        _navigationCoroutine = StartCoroutine(ContinuousNavigationCoroutine(move));
+    }
+
+    public void StopContinuousNavigation()
+    {
+        if (_navigationCoroutine != null)
+        {
+            StopCoroutine(_navigationCoroutine);
+            _navigationCoroutine = null;
+        }
+    }
+
+    private IEnumerator ContinuousNavigationCoroutine(Vector2 move)
+    {
+        yield return new WaitForSecondsRealtime(0.3f);
+
+        while (true)
+        {
+            MoveOneStep(move);
+            yield return new WaitForSecondsRealtime(navigationCooldown);
+        }
+    }
+
+    //public void ProcessNavigation(Vector2 move)
+    //{
+    //    if (_stateManager.LastItemSelected == null) return;
+
+    //    if (move == Vector2.zero) return;
+    //    if (Time.unscaledTime - _lastNavigationTime < navigationCooldown)
+    //    {
+    //        return; 
+    //    }
+    //    int addition = 0;
+
+    //    if (move.x > 0.5f) addition = CalculateXAddition(1);
+    //    else if (move.x < -0.5f) addition = CalculateXAddition(-1);
+    //    else if (move.y > 0.5f) addition = CalculateYAddition(1);
+    //    else if (move.y < -0.5f) addition = CalculateYAddition(-1);
+
+    //    if (addition != 0)
+    //    {
+    //        HandleNextItemSelection(addition);
+    //        _lastNavigationTime = Time.unscaledTime;
+    //    }
+    //}
 
     private void HandleNextItemSelection(int addition)
     {

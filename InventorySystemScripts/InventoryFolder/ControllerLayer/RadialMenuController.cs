@@ -1,8 +1,10 @@
+using DG.Tweening;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.UI;
 
 /// <summary>
 /// Handles the user input and logic for the radial menu.
@@ -16,8 +18,14 @@ public class RadialMenuController : MonoBehaviour
     [SerializeField] private RadialMenuView          _view;
     [SerializeField] private RadialMenuAnimator      _animator;
     [SerializeField] private MenuStateManager        _menuStateManager;
+    [SerializeField] private DetailsContent          _detailsContent;
+
+    [Header("Load Icon")]
+    [SerializeField] private Image loadImage;
+    [SerializeField] private float loadTime = 0.3f;
 
     private RadialMenuModel _model;
+    private Tweener _loadTweener;
 
     // Temporary storage
     private GameObject currentSelected;
@@ -38,6 +46,7 @@ public class RadialMenuController : MonoBehaviour
         inputChannel.OnRadialMenuOpen += HandleOpenRadialMenu;
         inputChannel.OnRadialMenuConfirm += HandleConfirmRadialMenu;
         inputChannel.OnNavigate += HandleNavigate;
+        inputChannel.OnRadialMenuHoldStart += HandleHoldStart;
     }
 
     private void OnDisable()
@@ -48,7 +57,23 @@ public class RadialMenuController : MonoBehaviour
             inputChannel.OnRadialMenuOpen -= HandleOpenRadialMenu;
             inputChannel.OnRadialMenuConfirm -= HandleConfirmRadialMenu;
             inputChannel.OnNavigate -= HandleNavigate;
+            inputChannel.OnRadialMenuHoldStart -= HandleHoldStart;
         }
+    }
+
+    private void HandleHoldStart()
+    {
+        if (_model.IsOpen) return;
+
+        currentSelected = _menuStateManager.LastItemSelected;
+        if (currentSelected == null) return;
+
+        loadImage.gameObject.SetActive(true);
+        loadImage.fillAmount = 0;
+
+        _loadTweener?.Kill();
+
+        _loadTweener = loadImage.DOFillAmount(1, loadTime).SetEase(Ease.Linear);
     }
 
     /// <summary>
@@ -89,6 +114,13 @@ public class RadialMenuController : MonoBehaviour
 
     private void HandleOpenRadialMenu()
     {
+        _loadTweener?.Kill();
+
+        if(loadImage != null)
+        {
+            loadImage.gameObject.SetActive(false);
+        }
+
         if (_model.IsOpen) return;
 
         currentSelected = _menuStateManager.LastItemSelected;
@@ -99,9 +131,7 @@ public class RadialMenuController : MonoBehaviour
         if (selectedSlotUI == null || selectedSlotUI.slot == null || selectedSlotUI.slot.item == null)
             return;
 
-        Item currentItem = selectedSlotUI.slot.item;
-
-        List<RadialMenuData> menuItems = currentItem.GetRadialMenuItems();
+        List<RadialMenuData> menuItems = BuildMenuItemsForSlot(selectedSlotUI.slot);
 
         if (menuItems == null || menuItems.Count == 0)
             return;
@@ -112,11 +142,125 @@ public class RadialMenuController : MonoBehaviour
         _model.OpenMenu(menuItems);
     }
 
+    /// <summary>
+    /// Prepare the content of the menu items based on the currently selected item
+    /// </summary>
+    /// <param name="inventorySlot">Currently selected slot</param>
+    /// <returns>the radial menu contains icons and actions</returns>
+    private List<RadialMenuData> BuildMenuItemsForSlot(InventorySlot currentSlot)
+    {
+        Item currentItem = currentSlot.item;
+        var actionRequests = currentItem.GetActionRequests();
+        var menuItems = new List<RadialMenuData>();
+
+        foreach (var request in actionRequests)
+        {
+            Action actionToPerform = null;
+            bool shouldAdd = true;
+            string actionName = request.actionType.ToString();
+
+            switch (request.actionType)
+            {
+                // common request
+                case RadialMenuActionType.ShowDetails:
+                    actionName = "Details";
+                    actionToPerform = () => _detailsContent.ToggleByInput();
+                    break;
+                case RadialMenuActionType.Drop:
+                    actionName = "Drop";
+                    actionToPerform = () => Debug.Log("-------- Drop --------");
+                    break;
+                case RadialMenuActionType.Sort:
+                    actionName = "Sort";
+                    actionToPerform = () => Debug.Log("-------- Sort --------");
+                    break;
+
+                // specific request
+                // Weapon
+                case RadialMenuActionType.Equip:
+                    actionName = "Equip";
+                    if (!currentItem.isEquippable || currentSlot.isEquipped)
+                    {
+                        shouldAdd = false;
+                    }
+                    else
+                    {
+                        actionToPerform = () => EquipmentManager.instance.Equip(currentSlot);
+                    }
+                    break;
+                case RadialMenuActionType.UnEquip:
+                    actionName = "UnEquip";
+                    if (!currentItem.isEquippable || !currentSlot.isEquipped)
+                    {
+                        shouldAdd = false;
+                    }
+                    else
+                    {
+                        actionToPerform = () => EquipmentManager.instance.UnEquip(currentItem.equipmentSlotType);
+                    }
+                    break;
+                case RadialMenuActionType.Fix:
+                    actionName = "Fix";
+                    actionToPerform = () => Debug.Log("----------  Fix  ----------");
+                    break;
+                case RadialMenuActionType.Enhance:
+                    actionName = "Enhance";
+                    actionToPerform = () => Debug.Log("--------- Enhance ---------");
+                    break;
+
+                // Consumable
+                case RadialMenuActionType.Use:
+                    actionName = "Consume";
+                    actionToPerform = () => 
+                    {
+                        if (currentSlot != null && currentSlot.item != null)
+                        {
+                            CharacterStatsController.instance.RestoreHealth(currentSlot.item.hp);
+                            InventoryManager.instance.RemoveItem(currentSlot);
+                        }
+                    };
+                    break;
+                case RadialMenuActionType.Combine:
+                    actionName = "Combine";
+                    actionToPerform = () => Debug.Log("--------- Combine ---------");
+                    break;
+
+                // Material
+                case RadialMenuActionType.Craft:
+                    actionName = "Craft";
+                    actionToPerform = () => Debug.Log("---------- Craft ----------");
+                    break;
+
+                // Key
+                case RadialMenuActionType.Present:
+                    actionName = "Present";
+                    actionToPerform = () => Debug.Log("--------- Present ---------");
+                    break;
+
+                // Other
+                default:
+                    actionToPerform = () => Debug.Log("--------- No requests ---------");
+                    break;
+
+            }
+            if (shouldAdd && actionToPerform != null)
+            {
+                menuItems.Add(new RadialMenuData(request.icon, actionName, actionToPerform));
+            }
+        }
+        return menuItems;
+
+    }
+
     private void HandleConfirmRadialMenu()
     {
-        if (!_model.IsOpen) return;
+        _loadTweener?.Kill();
+        if (loadImage != null)
+        {
+            loadImage.gameObject.SetActive(false);
+        }
 
-        Debug.Log("Confirm£¡");
+        if (!_model.IsOpen) return;
 
         _model.ConfirmSelection();
         _model.CloseMenu();
@@ -132,7 +276,8 @@ public class RadialMenuController : MonoBehaviour
         // Calculate the vector from the menu center to the mouse position.
         Vector2 mouseVector = mousePosition - centerScreenPosition;
 
-        if (mouseVector == Vector2.zero)
+        // If the mouse is in the deadzone, then cancel the highlight.
+        if(mouseVector.magnitude < _view.CenterDeadZoneRadius || mouseVector.magnitude > _view.ActionZoneRadius)
         {
             _model.CurrentHighlightIndex = -1;
             return;

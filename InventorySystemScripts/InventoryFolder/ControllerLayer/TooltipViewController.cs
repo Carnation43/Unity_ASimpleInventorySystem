@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 
 /// <summary>
@@ -23,6 +24,10 @@ public class TooltipViewController : MonoBehaviour
     // Stores the data of the inventory slot currently being displayed in the tooltip.
     private InventorySlot _currentSlot;
 
+    private GameObject _lastSelectedObject;
+    private float _lastActionTime;
+    private const float ACTION_COOLDOWN = 0.2f;
+
     public bool IsHidden => tooltipAnimator == null || tooltipAnimator.IsHidden;
 
     private void Awake()
@@ -38,7 +43,7 @@ public class TooltipViewController : MonoBehaviour
         {
             inputChannel.OnHide += HandleHide;
             inputChannel.OnConfirm += HandleConfirm;
-            // inputChannel.OnShowDetails += HandleShowDetails;
+            inputChannel.OnShowDetails += HandleShowDetails;
         }
 
         if (InventoryManager.instance != null)
@@ -57,7 +62,7 @@ public class TooltipViewController : MonoBehaviour
         {
             inputChannel.OnHide -= HandleHide;
             inputChannel.OnConfirm -= HandleConfirm;
-            // inputChannel.OnShowDetails -= HandleShowDetails;
+            inputChannel.OnShowDetails -= HandleShowDetails;
         }
         if (InventoryManager.instance != null)
         {
@@ -66,6 +71,35 @@ public class TooltipViewController : MonoBehaviour
         if (radialMenuModel != null)
         {
             radialMenuModel.OnMenuStateChanged -= HandleRadialMenuStateChanged;
+        }
+    }
+
+    /// <summary>
+    /// Let the tooltip actively manage its own state
+    /// </summary>
+    private void Update()
+    {
+        GameObject currentSelected = EventSystem.current.currentSelectedGameObject;
+
+        // if no slot is selected
+        if (currentSelected == null)
+        {
+            // Prevent the tooltip from closing accidentally when the mouse moves over it
+            if (!TooltipRaycastTarget.IsPointerOver)
+            {
+                HideTooltip();
+            }
+        }
+        
+        // record currently selected slot
+        _lastSelectedObject = currentSelected;
+    }
+
+    private void HandleShowDetails(InputAction.CallbackContext context)
+    {
+        if (tooltipAnimator != null)
+        {
+            tooltipAnimator.HandleDetailsHoldAnimation(context);
         }
     }
 
@@ -91,36 +125,46 @@ public class TooltipViewController : MonoBehaviour
 
     private void HandleConfirm(InputAction.CallbackContext obj)
     {
-        HandleEquipAction();
-    }
-
-    public void HandleEquipAction()
-    {
-        if (_currentSlot == null || _currentSlot.item == null)
-            return;
-
-        tooltipAnimator.TriggerConfirmAnimation();
+        if (_currentSlot == null || _currentSlot.item == null) return;
+        if (Time.time - _lastActionTime < ACTION_COOLDOWN) return;
 
         if (_currentSlot.item.isEquippable)
         {
-            if (_currentSlot.isEquipped)
-            {
-                EquipmentManager.instance.UnEquip(_currentSlot.item.equipmentSlotType);
-            }
-            else
-            {
-                EquipmentManager.instance.Equip(_currentSlot);
-            }
+            PerformEquipAction();
         }
-        else
+        else if (_currentSlot.item.category == ItemCategory.Consumable)
         {
-            // TODO: Other processing logic
+            PerformConsumeAction();
+        }
+        else if (_currentSlot.item.category == ItemCategory.Material)
+        {
+            // TODO: 
         }
     }
 
-    private void HandleShowDetails(InputAction.CallbackContext obj)
+    private void PerformConsumeAction()
     {
-        tooltipAnimator.TriggerDetailsAnimation();
+        _lastActionTime = Time.time;
+
+        tooltipAnimator.TriggerConfirmAnimation();
+
+        CharacterStatsController.instance.RestoreHealth(_currentSlot.item.hp);
+        InventoryManager.instance.RemoveItem(_currentSlot);
+    }
+    private void PerformEquipAction()
+    {
+        _lastActionTime = Time.time;
+
+        tooltipAnimator.TriggerConfirmAnimation();
+
+        if (_currentSlot.isEquipped)
+        {
+            EquipmentManager.instance.UnEquip(_currentSlot.item.equipmentSlotType);
+        }
+        else
+        {
+            EquipmentManager.instance.Equip(_currentSlot);
+        }    
     }
 
     private void HandleInventoryUpdate()
