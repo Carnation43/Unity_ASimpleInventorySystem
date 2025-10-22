@@ -15,8 +15,12 @@ using System;
 /// </summary>
 public class TabsManager : MonoBehaviour, IResettable
 {
-    [Header("Listening To")]
+    [Header("Input Listening To")]
     [SerializeField] private InputEventChannel inputChannel;
+
+    [Header("SFX Broadcasting On")]
+    [SerializeField] private AudioCueEventChannel uiAudioChannel;
+    [SerializeField] private AudioCueSO onTabSwitchCue;
 
     [SerializeField] UnityEvent<int> onTabSelected; 
 
@@ -88,6 +92,7 @@ public class TabsManager : MonoBehaviour, IResettable
 
     private void HandleInputLock(bool isLocked)
     {
+        Debug.Log(gameObject.name + " received lock event: " + isLocked);
         _isInputLocked = isLocked;
     }
 
@@ -203,6 +208,10 @@ public class TabsManager : MonoBehaviour, IResettable
         {
             if (_isCoolingDown) return;
             StartCoroutine(CoolingDownCoroutine());
+            if (uiAudioChannel != null && onTabSwitchCue != null)
+            {
+                uiAudioChannel.RaiseEvent(onTabSwitchCue);
+            }
             SelectTab(tabs[newIndex], true); // play animation when navigating inventory
         }
 

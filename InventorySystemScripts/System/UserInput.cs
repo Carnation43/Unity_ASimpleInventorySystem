@@ -67,6 +67,7 @@ public class UserInput : MonoBehaviour
 
     private void HandleInputLock(bool isLocked)
     {
+        Debug.Log(gameObject.name + " received lock event: " + isLocked);
         _isInputLocked = isLocked;
     }
 
@@ -122,11 +123,25 @@ public class UserInput : MonoBehaviour
 
     public void OnConfirm(InputAction.CallbackContext context)
     {
-        if (context.performed) inputChannel?.RaiseConfirmEvent(context);
+        if (IsRadialMenuHeldDown) return;
+        if (context.started)
+        {
+            inputChannel?.RaiseConfirmStartedEvent(context);
+            inputChannel?.RaiseConfirmEvent(context);   // Old code
+        }
+        else if (context.performed)
+        {
+            inputChannel?.RaiseConfirmPerformedEvent(context);
+        }
+        else if (context.canceled)
+        {
+            inputChannel?.RaiseConfirmCanceledEvent(context);
+        }
     }
 
     public void OnHide(InputAction.CallbackContext context)
     {
+        if (IsRadialMenuHeldDown) return;
         if (context.performed) inputChannel?.RaiseHideEvent(context);
     }
 

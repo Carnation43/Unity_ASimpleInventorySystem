@@ -7,6 +7,8 @@ public class ItemDrop : MonoBehaviour
     [Header("Settings")]
     [SerializeField] Item[] items;
 
+    public GameObject sourcePrefab;
+
     // Temp
     SpriteRenderer spriteRenderer;
     Item randomizedItem;
@@ -25,6 +27,23 @@ public class ItemDrop : MonoBehaviour
     private void OnMouseDown()
     {
         InventoryManager.instance.AddItem(randomizedItem);
-        Destroy(gameObject);
+        if (sourcePrefab != null && GameObjectPoolManager.Instance != null)
+        {
+            GameObjectPoolManager.Instance.ReturnToPool(sourcePrefab, this.gameObject);
+        }
+        else
+        {
+            Destroy(gameObject);
+        }
+    
+    }
+
+    public void Initialize()
+    {
+        randomizedItem = items[Random.Range(0, items.Length)];
+        if (spriteRenderer != null)
+        {
+            spriteRenderer.sprite = randomizedItem.sprite;
+        }
     }
 }

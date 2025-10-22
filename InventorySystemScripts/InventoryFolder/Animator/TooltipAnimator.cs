@@ -51,8 +51,9 @@ public class TooltipAnimator : MonoBehaviour, IResettable
 
         if (context.performed || context.canceled)
         {
+            Debug.Log("Tooltip Hold Cancel");
             _detailsHoldTween?.Kill();
-            buttonTransform.DOScale(1.0f, 0.1f);
+            _detailsHoldTween = buttonTransform.DOScale(1.0f, 0.1f);
         }
     }
 

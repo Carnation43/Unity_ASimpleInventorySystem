@@ -13,6 +13,16 @@ public class RadialMenuController : MonoBehaviour
 {
     [Header("Listen to")]
     [SerializeField] private InputEventChannel inputChannel;
+    [SerializeField] private CharacterPanelVfxChannel characterVfxChannel;
+
+    [Header("SFX Broadcasting On")]
+    [SerializeField] private AudioCueEventChannel uiAudioChannel;
+    [SerializeField] private ItemActionEventChannel itemActionChannel;
+
+    [Header("Audio Cues - Self")]
+    [SerializeField] private AudioCueSO onNavigateCue;
+    [SerializeField] private AudioCueSO onHoldStartCue;
+    [SerializeField] private AudioCueSO onMenuOpenCue;
 
     [Header("Referneces")]
     [SerializeField] private RadialMenuView          _view;
@@ -63,10 +73,17 @@ public class RadialMenuController : MonoBehaviour
 
     private void HandleHoldStart()
     {
+        if (MenuController.instance != null && MenuController.instance.currentFocus != MenuController.MenuFocus.Inventory)
+        {
+            return;
+        }
+
         if (_model.IsOpen) return;
 
         currentSelected = _menuStateManager.LastItemSelected;
         if (currentSelected == null) return;
+
+        uiAudioChannel.RaiseEvent(onHoldStartCue);
 
         loadImage.gameObject.SetActive(true);
         loadImage.fillAmount = 0;
@@ -109,11 +126,17 @@ public class RadialMenuController : MonoBehaviour
             // When we rotate counterclockwise, [e.g., (0 - 1 + 5) % 5 = 4]
             int newIndex = (currentIndex + change + itemCount) % itemCount;
             _model.CurrentHighlightIndex = newIndex;
+            uiAudioChannel.RaiseEvent(onNavigateCue);
         }
     }
 
     private void HandleOpenRadialMenu()
     {
+        if (MenuController.instance != null && MenuController.instance.currentFocus != MenuController.MenuFocus.Inventory)
+        {
+            return;
+        }
+
         _loadTweener?.Kill();
 
         if(loadImage != null)
@@ -135,6 +158,8 @@ public class RadialMenuController : MonoBehaviour
 
         if (menuItems == null || menuItems.Count == 0)
             return;
+
+        uiAudioChannel.RaiseEvent(onMenuOpenCue);
 
         // Ensure that the menu opens at the position of the currently selected item
         _view.transform.position = currentSelected.transform.position;
@@ -159,92 +184,45 @@ public class RadialMenuController : MonoBehaviour
             bool shouldAdd = true;
             string actionName = request.actionType.ToString();
 
+            if (request.actionType == RadialMenuActionType.Craft)
+            {
+                actionName = "Craft";
+                actionToPerform = () =>
+                {
+                    MenuController.instance.OpenCraftMenu();
+                };
+                menuItems.Add(new RadialMenuData(request.icon, actionName, actionToPerform));
+                continue;
+            }
+
             switch (request.actionType)
             {
-                // common request
-                case RadialMenuActionType.ShowDetails:
-                    actionName = "Details";
-                    actionToPerform = () => _detailsContent.ToggleByInput();
-                    break;
-                case RadialMenuActionType.Drop:
-                    actionName = "Drop";
-                    actionToPerform = () => Debug.Log("-------- Drop --------");
-                    break;
-                case RadialMenuActionType.Sort:
-                    actionName = "Sort";
-                    actionToPerform = () => Debug.Log("-------- Sort --------");
-                    break;
-
-                // specific request
-                // Weapon
                 case RadialMenuActionType.Equip:
-                    actionName = "Equip";
-                    if (!currentItem.isEquippable || currentSlot.isEquipped)
-                    {
-                        shouldAdd = false;
-                    }
-                    else
-                    {
-                        actionToPerform = () => EquipmentManager.instance.Equip(currentSlot);
-                    }
+                    if (currentSlot.isEquipped) { shouldAdd = false; }
+                    else { actionName = "Equip"; }
                     break;
                 case RadialMenuActionType.UnEquip:
-                    actionName = "UnEquip";
-                    if (!currentItem.isEquippable || !currentSlot.isEquipped)
-                    {
-                        shouldAdd = false;
-                    }
-                    else
-                    {
-                        actionToPerform = () => EquipmentManager.instance.UnEquip(currentItem.equipmentSlotType);
-                    }
+                    if (!currentSlot.isEquipped) { shouldAdd = false; }
+                    else { actionName = "UnEquip"; }
                     break;
-                case RadialMenuActionType.Fix:
-                    actionName = "Fix";
-                    actionToPerform = () => Debug.Log("----------  Fix  ----------");
-                    break;
-                case RadialMenuActionType.Enhance:
-                    actionName = "Enhance";
-                    actionToPerform = () => Debug.Log("--------- Enhance ---------");
-                    break;
-
-                // Consumable
-                case RadialMenuActionType.Use:
-                    actionName = "Consume";
-                    actionToPerform = () => 
-                    {
-                        if (currentSlot != null && currentSlot.item != null)
-                        {
-                            CharacterStatsController.instance.RestoreHealth(currentSlot.item.hp);
-                            InventoryManager.instance.RemoveItem(currentSlot);
-                        }
-                    };
-                    break;
-                case RadialMenuActionType.Combine:
-                    actionName = "Combine";
-                    actionToPerform = () => Debug.Log("--------- Combine ---------");
-                    break;
-
-                // Material
-                case RadialMenuActionType.Craft:
-                    actionName = "Craft";
-                    actionToPerform = () => Debug.Log("---------- Craft ----------");
-                    break;
-
-                // Key
-                case RadialMenuActionType.Present:
-                    actionName = "Present";
-                    actionToPerform = () => Debug.Log("--------- Present ---------");
-                    break;
-
+                case RadialMenuActionType.Use: actionName = "Consume"; break;
+                case RadialMenuActionType.ShowDetails: actionName = "Details"; break;
+                case RadialMenuActionType.Drop: actionName = "Drop"; break;
+                case RadialMenuActionType.Sort: actionName = "Sort"; break;
+                case RadialMenuActionType.Fix: actionName = "Fix"; break;
+                case RadialMenuActionType.Enhance: actionName = "Enhance"; break;
+                case RadialMenuActionType.Combine: actionName = "Combine"; break;
+                // case RadialMenuActionType.Craft: actionName = "Craft"; break;
+                case RadialMenuActionType.Present: actionName = "Present"; break;
                 // Other
                 default:
                     actionToPerform = () => Debug.Log("--------- No requests ---------");
                     break;
-
             }
-            if (shouldAdd && actionToPerform != null)
+            if (shouldAdd)
             {
+                RadialMenuActionType currentActionType = request.actionType;
+                actionToPerform = () => itemActionChannel.RaiseEvent(currentSlot, currentActionType);
                 menuItems.Add(new RadialMenuData(request.icon, actionName, actionToPerform));
             }
         }

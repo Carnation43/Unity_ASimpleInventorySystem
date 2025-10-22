@@ -21,7 +21,14 @@ public class Ghost : MonoBehaviour
 
     void DropItem()
     {
-        GameObject newGo = Instantiate(itemPrefab, transform.position, transform.rotation);
+        GameObject newGo = GameObjectPoolManager.Instance.GetFromPool(itemPrefab, transform.position, transform.rotation);
+        ItemDrop itemDrop = newGo.GetComponent<ItemDrop>();
+        if (itemDrop != null)
+        {
+            itemDrop.sourcePrefab = itemPrefab;
+            itemDrop.Initialize();
+        }
+
         Rigidbody2D rb = newGo.GetComponent<Rigidbody2D>();
 
         rb.AddForce(new Vector2(Random.Range(-5f, 5f), 4f), ForceMode2D.Impulse);

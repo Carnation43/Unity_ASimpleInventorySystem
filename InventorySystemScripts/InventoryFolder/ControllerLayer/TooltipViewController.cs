@@ -16,6 +16,9 @@ public class TooltipViewController : MonoBehaviour
     [SerializeField] private InputEventChannel inputChannel;
     [SerializeField] private RadialMenuModel radialMenuModel;
 
+    [Header("Broadcasting On")]
+    [SerializeField] private ItemActionEventChannel itemActionChannel;
+
     [Header("Dependencies")]
     [SerializeField] private TooltipView tooltipView;
     [SerializeField] private TooltipPosition tooltipPosition;
@@ -26,7 +29,7 @@ public class TooltipViewController : MonoBehaviour
 
     private GameObject _lastSelectedObject;
     private float _lastActionTime;
-    private const float ACTION_COOLDOWN = 0.2f;
+    private const float ACTION_COOLDOWN = 0.4f;
 
     public bool IsHidden => tooltipAnimator == null || tooltipAnimator.IsHidden;
 
@@ -120,51 +123,49 @@ public class TooltipViewController : MonoBehaviour
 
     private void HandleHide(InputAction.CallbackContext obj)
     {
+        if (MenuController.instance.currentFocus != MenuController.MenuFocus.Inventory) return;
+
         tooltipAnimator.ToggleTooltip(tooltipPosition._trackedRectTransform);
     }
 
     private void HandleConfirm(InputAction.CallbackContext obj)
     {
         if (_currentSlot == null || _currentSlot.item == null) return;
+
+        if (_currentSlot.item.category == ItemCategory.Material)
+        {
+            PerformQuickAction();
+            return;
+        }
+
         if (Time.time - _lastActionTime < ACTION_COOLDOWN) return;
 
+        PerformQuickAction();
+    }
+
+    private void PerformQuickAction()
+    {
+        _lastActionTime = Time.time;
+        tooltipAnimator.TriggerConfirmAnimation();
+
+        RadialMenuActionType actionType = RadialMenuActionType.None;
         if (_currentSlot.item.isEquippable)
         {
-            PerformEquipAction();
+            actionType = _currentSlot.isEquipped ? RadialMenuActionType.UnEquip : RadialMenuActionType.Equip;
         }
         else if (_currentSlot.item.category == ItemCategory.Consumable)
         {
-            PerformConsumeAction();
+            actionType = RadialMenuActionType.Use;
         }
         else if (_currentSlot.item.category == ItemCategory.Material)
         {
-            // TODO: 
+            actionType = RadialMenuActionType.Craft;
         }
-    }
 
-    private void PerformConsumeAction()
-    {
-        _lastActionTime = Time.time;
-
-        tooltipAnimator.TriggerConfirmAnimation();
-
-        CharacterStatsController.instance.RestoreHealth(_currentSlot.item.hp);
-        InventoryManager.instance.RemoveItem(_currentSlot);
-    }
-    private void PerformEquipAction()
-    {
-        _lastActionTime = Time.time;
-
-        tooltipAnimator.TriggerConfirmAnimation();
-
-        if (_currentSlot.isEquipped)
+        if (actionType != RadialMenuActionType.None)
         {
-            EquipmentManager.instance.UnEquip(_currentSlot.item.equipmentSlotType);
+            itemActionChannel?.RaiseEvent(_currentSlot, actionType);
         }
-        else
-        {
-            EquipmentManager.instance.Equip(_currentSlot);
-        }    
     }
 
     private void HandleInventoryUpdate()

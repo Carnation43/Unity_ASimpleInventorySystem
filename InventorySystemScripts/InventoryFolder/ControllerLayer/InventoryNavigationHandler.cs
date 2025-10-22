@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -114,16 +115,16 @@ public class InventoryNavigationHandler : MonoBehaviour
     {
         Vector2Int count = GridLayoutGroupHelper.Size(_group);
         if (count.x <= 1) return 0;
-
+        
         if (direction > 0) // right
         {
             if (_stateManager.LastSelectedIndex == _viewController.SlotUIList.Count - 1) return 0;
-            if (_stateManager.LastSelectedIndex % count.x == count.x - 1) return 0;
+            // if (_stateManager.LastSelectedIndex % count.x == count.x - 1) return 0;
             return 1;
         }
         else // left
         {
-            if (_stateManager.LastSelectedIndex % count.x == 0) return 0;
+            // if (_stateManager.LastSelectedIndex % count.x == 0) return 0;
             return -1;
         }
     }
@@ -140,8 +141,27 @@ public class InventoryNavigationHandler : MonoBehaviour
         }
         else // down
         {
-            if (_stateManager.LastSelectedIndex + count.x >= _viewController.SlotUIList.Count) return 0;
+            if (_stateManager.LastSelectedIndex + count.x >= _viewController.SlotUIList.Count) 
+                return (_viewController.SlotUIList.Count - 1) - _stateManager.LastSelectedIndex;
             return count.x;
         }
+    }
+
+    /// <summary>
+    /// (public method) check currently selected item is in the last index
+    /// </summary>
+    /// <returns>bool value</returns>
+    public bool IsOnLastRow()
+    {
+        if (_stateManager.LastItemSelected == null) return false;
+
+        var gridLayoutSize = GridLayoutGroupHelper.Size(_group);
+        if (gridLayoutSize.x == 0 || gridLayoutSize.y == 0) return false;
+
+        int currentRowIndex = _stateManager.LastSelectedIndex / gridLayoutSize.x;
+
+        int lastRowIndex = gridLayoutSize.y - 1;
+
+        return currentRowIndex == lastRowIndex;
     }
 }

@@ -116,7 +116,7 @@ public class DetailsContent : MonoBehaviour, IResettable
 
         // If currently in upgrade panel -> check whether we can enter details panel
         var selected = EventSystem.current.currentSelectedGameObject;
-        if (selected != null && !TooltipViewController.instance.IsHidden)
+        if (selected != null)
         {
             var slotUI = selected.GetComponent<InventorySlotUI>();
             if (slotUI != null && slotUI.slot != null)

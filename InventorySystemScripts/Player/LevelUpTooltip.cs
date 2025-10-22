@@ -14,18 +14,20 @@ public class LevelUpTooltip : MonoBehaviour
     [Header("Broadcasting On")]
     [SerializeField] private InputEventChannel inputChannel;
 
+    [Header("SFX Listening To")]
+    [SerializeField] private AudioCueEventChannel uiAudioChannel;
+
     [Header("UI Reference")]
     [SerializeField] private TMP_Text promptText;
     [SerializeField] private Button confirmButton;
     [SerializeField] private Button cancelButton;
+    [SerializeField] private AudioCueSO onConfirmCue;
 
     private UnityAction onConfirmAction;
     private CanvasGroup canvasGroup;
 
     private void Awake()
     {
-        gameObject.SetActive(false);
-
         canvasGroup = GetComponent<CanvasGroup>();
 
         if(canvasGroup != null)
@@ -52,7 +54,7 @@ public class LevelUpTooltip : MonoBehaviour
 
     private void HandleConfirm(InputAction.CallbackContext context)
     {
-        if (!context.performed) return;
+        if (!context.started) return;
 
         GameObject currentSelected = EventSystem.current.currentSelectedGameObject;
 
@@ -75,6 +77,7 @@ public class LevelUpTooltip : MonoBehaviour
 
         if (inputChannel != null)
         {
+            Debug.Log("Raise Global Input Lock Event in LevelUpTooltip.cs");
             inputChannel.RaiseGlobalInputLockEvent(true);
         }
 
@@ -94,11 +97,13 @@ public class LevelUpTooltip : MonoBehaviour
     private void OnConfirm()
     {
         onConfirmAction?.Invoke();
+        uiAudioChannel.RaiseEventWithPitch(onConfirmCue, 0.5f);
         CloseDialog();
     }
 
     private void OnCancel()
     {
+        uiAudioChannel.RaiseEventWithPitch(onConfirmCue, 1.0f);
         CloseDialog();
     }
 

@@ -1,11 +1,9 @@
 using InstanceResetToDefault;
-using System;
 using System.Collections;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
-using UnityEngine.InputSystem.Interactions;
 using UnityEngine.UI;
 
 public class MenuController : MonoBehaviour
@@ -15,9 +13,17 @@ public class MenuController : MonoBehaviour
     [Header("Listen to")]
     [SerializeField] private InputEventChannel inputChannel;
 
+    [Header("Broadcasting On")]
+    [SerializeField] private MusicEventChannel musicChannel;
+    [SerializeField] private AudioCueEventChannel uiAudioChannel;
+
+    [Header("SFX References")]
+    [SerializeField] private AudioCueSO onToggleMenuCue;
+
     [Header("Core UI References")]
     [SerializeField] private GameObject _canvasObj;
     [SerializeField] private GridLayoutGroup _group;
+    [SerializeField] private GameObject _backgroundCanvasObj;
 
     [Header("Dependencies (Drag Components Here)")]
     [SerializeField] private InventoryView _inventoryView;
@@ -26,6 +32,12 @@ public class MenuController : MonoBehaviour
     [SerializeField] private TabsManager _tabsManager;
     [SerializeField] private MenuAnimator _menuAnimator;
     [SerializeField] private LevelUpView _levelUpView;
+    [SerializeField] private CraftingView _craftingView;
+
+    [Header("Panel Canvas group")]
+    [SerializeField] private CanvasGroup _inventoryPanelCanvasGroup;
+    [SerializeField] private CanvasGroup _levelUpPanelCanvasGroup;
+    [SerializeField] private CanvasGroup _craftingPanelCanvasGroup;
 
     public bool IsMenuOpen { get; private set; }
     private bool _isSwitchingTabs = false;
@@ -34,7 +46,7 @@ public class MenuController : MonoBehaviour
     private Coroutine _toggleMenuCoroutine;
 
     // Define current focus type
-    public enum MenuFocus { Inventory, LevelUp }
+    public enum MenuFocus { Inventory, LevelUp, Crafting }
     public MenuFocus currentFocus = MenuFocus.Inventory;
 
     private void Awake()
@@ -51,6 +63,7 @@ public class MenuController : MonoBehaviour
         _navigationHandler.Initialize(_stateManager, _inventoryView, _group);
 
         _canvasObj.SetActive(false);
+        _backgroundCanvasObj.SetActive(false);
         IsMenuOpen = false;
     }
 
@@ -98,6 +111,7 @@ public class MenuController : MonoBehaviour
 
     private void HandleInputLock(bool isLocked)
     {
+        Debug.Log(gameObject.name + " received lock event: " + isLocked);
         _isInputLocked = isLocked;
     }
 
@@ -126,10 +140,27 @@ public class MenuController : MonoBehaviour
     }
     private IEnumerator OpenMenuCoroutine()
     {
+        yield return null;
+
+        uiAudioChannel?.RaiseEventWithPitch(onToggleMenuCue, 1f);
+        musicChannel?.RaiseApplyEffectEvent();
+
         _isOpeningMenu = true;
 
         _canvasObj.SetActive(true);
         currentFocus = MenuFocus.Inventory;
+
+        if (_levelUpPanelCanvasGroup != null)
+        {
+            _levelUpPanelCanvasGroup.interactable = false;
+            _levelUpPanelCanvasGroup.blocksRaycasts = false;
+        }
+        if (_inventoryPanelCanvasGroup != null)
+        {
+            _inventoryPanelCanvasGroup.interactable = true;
+            _inventoryPanelCanvasGroup.blocksRaycasts = true;
+        }
+
         if (UINavigationManager.Instance != null)
         {
             UINavigationManager.Instance.SetNavigationMode(false);
@@ -137,6 +168,7 @@ public class MenuController : MonoBehaviour
         SingletonResetManager.Instance.ResetAllSingletons();
         _stateManager.ClearSelection();
         HandleInventoryDataChanged();
+        _craftingView.UpdateAllSlotsUI();
 
         if (_inventoryView != null)
         {
@@ -147,6 +179,8 @@ public class MenuController : MonoBehaviour
         {
             yield return _menuAnimator.PlayOpenAnimation();
         }
+
+        _backgroundCanvasObj.SetActive(true);
 
         if (UserInput.instance != null)
         {
@@ -159,6 +193,11 @@ public class MenuController : MonoBehaviour
 
     private IEnumerator CloseMenuCoroutine()
     {
+        _backgroundCanvasObj.SetActive(false);
+
+        uiAudioChannel?.RaiseEventWithPitch(onToggleMenuCue, 1.2f);
+        musicChannel?.RaiseRemoveEffectEvent();
+
         if (_stateManager.LastItemSelected != null)
         {
             var iconController = _stateManager.LastItemSelected.GetComponent<BaseIconAnimationController>();
@@ -181,7 +220,7 @@ public class MenuController : MonoBehaviour
         }
 
         _canvasObj.SetActive(false);
-
+        _backgroundCanvasObj.SetActive(false);
         _toggleMenuCoroutine = null;
     }
 
@@ -235,48 +274,70 @@ public class MenuController : MonoBehaviour
 
     private void HandleNavigation(InputAction.CallbackContext context)
     {
-        if (!IsMenuOpen || _isInputLocked) return;
-
+        if (!IsMenuOpen || _isInputLocked || UserInput.IsRadialMenuHeldDown) return;
         Vector2 move = context.ReadValue<Vector2>();
 
         if (context.performed)
         {
-            if (currentFocus == MenuFocus.Inventory)
+            switch (currentFocus)
             {
-                // When moving left in the first column of the inventory,
-                // switch the focus to the upgrade panel
-                var gridLayoutSize = GridLayoutGroupHelper.Size(_group);
-                bool isFirstColumn = _stateManager.LastItemSelected != null && gridLayoutSize.x > 0 && _stateManager.LastSelectedIndex % gridLayoutSize.x == 0;
+                case MenuFocus.Inventory:
+                    // When moving left in the first column of the inventory,
+                    // switch the focus to the upgrade panel
+                    var gridLayoutSize = GridLayoutGroupHelper.Size(_group);
+                    bool isFirstColumn = _stateManager.LastItemSelected != null && gridLayoutSize.x > 0 && _stateManager.LastSelectedIndex % gridLayoutSize.x == 0;
 
-                if (move.x < -0.5f && isFirstColumn)
-                {
-                    SwitchFocusTo(MenuFocus.LevelUp);
-                    _navigationHandler.StopContinuousNavigation();
-                    return;
-                }
-            }
-            else if (currentFocus == MenuFocus.LevelUp)
-            {
-                // When moving right in the upgrade panel, switch the focus to the inventory
-                if (move.x > 0.5f)
-                {
-                    SwitchFocusTo(MenuFocus.Inventory);
-                    return;
-                }
+                    if (move.x < -0.5f && isFirstColumn)
+                    {
+                        SwitchFocusTo(MenuFocus.LevelUp);
+                        _navigationHandler.StopContinuousNavigation();
+                    }
+                    else if (move.y < -0.5f && _navigationHandler.IsOnLastRow())
+                    {
+                        SwitchFocusTo(MenuFocus.Crafting);
+                        _navigationHandler.StopContinuousNavigation();
+                    }
+                    else
+                    {
+                        _navigationHandler.MoveOneStep(move);
+                        _navigationHandler.StartContinuousNavigation(move);
+                    }
+                    break;
+
+                case MenuFocus.LevelUp:
+                    // When moving right in the upgrade panel, switch the focus to the inventory
+                    if (move.x > 0.5f)
+                    {
+                        SwitchFocusTo(MenuFocus.Inventory);
+                    }
+                    break;
+
+                case MenuFocus.Crafting:
+                    var slots = _craftingView.GetNavigatableSlots();
+                    var currentSelected = EventSystem.current.currentSelectedGameObject;
+                    int currentIndex = slots.IndexOf(currentSelected);
+
+                    int direction = 0;
+                    if (move.x > 0.5f) direction = 1;
+                    else if (move.x < -0.5f) direction = -1;
+
+                    if (direction != 0 && currentIndex != -1)
+                    {
+                        int newIndex = (currentIndex + direction + slots.Count) % slots.Count;
+                        EventSystem.current.SetSelectedGameObject(slots[newIndex]);
+                    }
+
+                    if (move.y > 0.5f)
+                    {
+                        SwitchFocusTo(MenuFocus.Inventory);
+                    }
+                    break;
             }
         }
-        if (currentFocus == MenuFocus.Inventory)
+
+        if (currentFocus == MenuFocus.Inventory && context.canceled)
         {
-            if (context.performed)
-            {
-                _navigationHandler.MoveOneStep(move);
-                _navigationHandler.StartContinuousNavigation(move);
-            }
-        
-            else if (context.canceled)
-            {
-                _navigationHandler.StopContinuousNavigation();
-            }
+            _navigationHandler.StopContinuousNavigation();
         }
     }
 
@@ -284,25 +345,54 @@ public class MenuController : MonoBehaviour
     {
         if (currentFocus == newFocus) return;
 
+        // clean status
+        switch (currentFocus)
+        {
+            case MenuFocus.Inventory:
+                if (_stateManager.LastItemSelected != null)
+                {
+                    EventSystem.current.SetSelectedGameObject(null);
+                }
+                TooltipViewController.instance.HideTooltip();
+                break;
+            case MenuFocus.LevelUp:
+                _levelUpView.LoseFocus();
+                break;
+            case MenuFocus.Crafting:
+                EventSystem.current.SetSelectedGameObject(null);
+                break;
+        }
+
         currentFocus = newFocus;
+
+        // inactive canvasgroup
+        if (_inventoryPanelCanvasGroup != null)
+        {
+            _inventoryPanelCanvasGroup.interactable = false;
+            _inventoryPanelCanvasGroup.blocksRaycasts = false;
+        }
+        if (_levelUpPanelCanvasGroup != null)
+        {
+            _levelUpPanelCanvasGroup.interactable = false;
+            _levelUpPanelCanvasGroup.blocksRaycasts = false;
+        }
+        if (_craftingPanelCanvasGroup != null)
+        {
+            _craftingPanelCanvasGroup.interactable = false;
+            _craftingPanelCanvasGroup.blocksRaycasts = false;
+        }
 
         if (newFocus == MenuFocus.LevelUp)
         {
-            // lose focus
-            if (_stateManager.LastItemSelected != null)
-            {
-                EventSystem.current.SetSelectedGameObject(null);
-            }
-            // TooltipViewController.instance.HideTooltip();
-
-            // levelpanel takes focus
+            _levelUpPanelCanvasGroup.interactable = true;   
+            _levelUpPanelCanvasGroup.blocksRaycasts = true; 
             _levelUpView.TakeFocus();
         }
-        else // newFocus == MenuFocus.Inventory
+        else if (newFocus == MenuFocus.Inventory)
         {
-            // levelpanel loses focus
-            _levelUpView.LoseFocus();
-
+            _inventoryPanelCanvasGroup.interactable = true;  
+            _inventoryPanelCanvasGroup.blocksRaycasts = true; 
+            
             // inventoryPanel takse focus
             if (_stateManager.LastItemSelected != null)
             {
@@ -313,5 +403,24 @@ public class MenuController : MonoBehaviour
                 StartCoroutine(_inventoryView.SelectFirstItemAfterDelay(true));
             }
         }
+        else if (newFocus == MenuFocus.Crafting)
+        {
+            if (_craftingPanelCanvasGroup != null)
+            {
+                _craftingPanelCanvasGroup.interactable = true;
+                _craftingPanelCanvasGroup.blocksRaycasts = true;
+            }
+            EventSystem.current.SetSelectedGameObject(_craftingView.GetNavigatableSlots().FirstOrDefault());
+        }
     }
+
+    #region Change Menu
+    /// <summary>
+    /// Switch to craft menu
+    /// </summary>
+    public void OpenCraftMenu()
+    {
+        Debug.Log("<color=cyan>Open the craft menu</color>");
+    }
+    #endregion
 }

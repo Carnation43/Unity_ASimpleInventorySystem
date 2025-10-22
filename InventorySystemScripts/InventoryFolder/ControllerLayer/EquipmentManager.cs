@@ -20,7 +20,14 @@ public class EquipmentManager : MonoBehaviour
     [Header("References")]
     [SerializeField] private MenuStateManager stateManager; // Gets currently selected item
 
+    // deprecated
+    // [SerializeField] private AudioManager audioManager;
+    // [SerializeField] private AudioSheetSO equipSfxSheet;
+    // [SerializeField] private float equipPitch = 1.15f;
+    // [SerializeField] private float unequipPitch = 0.85f;
+
     // A dictonary that stores the currently equipped item for each equipment slot type.
+
     public Dictionary<EquipmentSlotType, Item> equippedItems = new Dictionary<EquipmentSlotType,Item>();
 
     public event Action OnEquipmentChanged;
@@ -69,7 +76,7 @@ public class EquipmentManager : MonoBehaviour
             equippedItems.Remove(slotType);
 
             OnEquipmentChanged?.Invoke(); 
-            InventoryManager.instance.TriggerInventoryUpdate(); 
+            InventoryManager.instance.TriggerInventoryUpdate();
         }
     }
 

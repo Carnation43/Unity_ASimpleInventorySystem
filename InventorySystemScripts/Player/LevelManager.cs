@@ -2,6 +2,9 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
+/// <summary>
+/// Players upgrade attributes
+/// </summary>
 public enum StatType
 {
     Vigor,
@@ -41,8 +44,11 @@ public class LevelManager : MonoBehaviour
     }
 
     /// <summary>
-    /// The points spent on handling consecutive upgrades
+    /// Calculate the cost required to level up starting from the current level.
     /// </summary>
+    /// <param name="startingLevel">Player's current level</param>
+    /// <param name="levelsToAdd">The number of levels to be upgraded</param>
+    /// <returns>Total cost</returns>
     public int CalculateCostForLevels(int startingLevel, int levelsToAdd)
     {
         if (levelsToAdd <= 0) return 0;
@@ -56,6 +62,10 @@ public class LevelManager : MonoBehaviour
         return totalCost;
     }
 
+    /// <summary>
+    /// Deduct glow to update character data according to the assigned points
+    /// </summary>
+    /// <param name="pointsToAdd">A dictionary contains points to be added in the attributes</param>
     public void ConfirmMultiLevelUp(Dictionary<StatType, int> pointsToAdd, int totalCost)
     {
         if (_statsData.currentGlows < totalCost)
@@ -73,7 +83,7 @@ public class LevelManager : MonoBehaviour
             StatType stat = pair.Key; // The attributes that need to be upgraded currently
             int points = pair.Value;  // The points that need to be costed
 
-            if (points <= 0) continue;
+            if (points <= 0) continue; // Skip attributes without upgrading
 
             totalLevelsAdded += points;
 

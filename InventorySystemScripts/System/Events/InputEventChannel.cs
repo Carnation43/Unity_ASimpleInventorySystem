@@ -59,7 +59,7 @@ public class InputEventChannel : ScriptableObject
     public event Action<InputAction.CallbackContext> OnSkip;
 
     /// <summary>
-    /// Keyboard(Long press J: Open the radial menu)
+    /// Keyboard(Long press K: Open the radial menu)
     /// </summary>
     public event Action OnRadialMenuOpen;
 
@@ -67,6 +67,10 @@ public class InputEventChannel : ScriptableObject
     /// Keyboard(Release J: Select the radial menu item)
     /// </summary>
     public event Action OnRadialMenuConfirm;
+
+    public event Action<InputAction.CallbackContext> OnConfirmStarted;
+    public event Action<InputAction.CallbackContext> OnConfirmPerformed;
+    public event Action<InputAction.CallbackContext> OnConfirmCanceled;
     #endregion
 
     #region Player Input
@@ -111,30 +115,33 @@ public class InputEventChannel : ScriptableObject
     public event Action OnRadialMenuHoldStart;
 
     #region UI Action Events
-    public void RaiseNavigateEvent(InputAction.CallbackContext context)             => OnNavigate?.Invoke(context);
-    public void RaiseNavigateLeftEvent(InputAction.CallbackContext context)         => OnNavigateLeft?.Invoke(context);
-    public void RaiseNavigateRightEvent(InputAction.CallbackContext context)        => OnNavigateRight?.Invoke(context);
-    public void RaiseConfirmEvent(InputAction.CallbackContext context)              => OnConfirm?.Invoke(context);
-    public void RaiseShowDetailsEvent(InputAction.CallbackContext context)          => OnShowDetails?.Invoke(context);
-    public void RaiseHideEvent(InputAction.CallbackContext context)                 => OnHide?.Invoke(context);
-    public void RaiseSkipEvent(InputAction.CallbackContext context)                 => OnSkip?.Invoke(context);
-    public void RaiseRadialMenuOpenEvent()                                          => OnRadialMenuOpen?.Invoke();
-    public void RaiseRadialMenuConfirmEvent()                                       => OnRadialMenuConfirm?.Invoke();
+    public void RaiseNavigateEvent(InputAction.CallbackContext context)                 => OnNavigate?.Invoke(context);
+    public void RaiseNavigateLeftEvent(InputAction.CallbackContext context)             => OnNavigateLeft?.Invoke(context);
+    public void RaiseNavigateRightEvent(InputAction.CallbackContext context)            => OnNavigateRight?.Invoke(context);
+    public void RaiseConfirmEvent(InputAction.CallbackContext context)                  => OnConfirm?.Invoke(context);
+    public void RaiseShowDetailsEvent(InputAction.CallbackContext context)              => OnShowDetails?.Invoke(context);
+    public void RaiseHideEvent(InputAction.CallbackContext context)                     => OnHide?.Invoke(context);
+    public void RaiseSkipEvent(InputAction.CallbackContext context)                     => OnSkip?.Invoke(context);
+    public void RaiseRadialMenuOpenEvent()                                              => OnRadialMenuOpen?.Invoke();
+    public void RaiseRadialMenuConfirmEvent()                                           => OnRadialMenuConfirm?.Invoke();
+    public void RaiseConfirmStartedEvent(InputAction.CallbackContext context)           => OnConfirmStarted?.Invoke(context);
+    public void RaiseConfirmPerformedEvent(InputAction.CallbackContext context)         => OnConfirmPerformed?.Invoke(context);
+    public void RaiseConfirmCanceledEvent(InputAction.CallbackContext context)          => OnConfirmCanceled?.Invoke(context);
     #endregion
 
     #region Player Action Events
-    public void RaiseMoveEvent(InputAction.CallbackContext context)                 => OnMove?.Invoke(context);
-    public void RaiseJumpEvent(InputAction.CallbackContext context)                 => OnJump?.Invoke(context);
-    public void RaiseAttackEvent(InputAction.CallbackContext context)               => OnAttack?.Invoke(context);
+    public void RaiseMoveEvent(InputAction.CallbackContext context)                     => OnMove?.Invoke(context);
+    public void RaiseJumpEvent(InputAction.CallbackContext context)                     => OnJump?.Invoke(context);
+    public void RaiseAttackEvent(InputAction.CallbackContext context)                   => OnAttack?.Invoke(context);
     #endregion
 
     #region Global Action Events
-    public void RaiseToggleMenuEvent(InputAction.CallbackContext context)           => OnToggleMenu?.Invoke(context);
-    public void RaiseMouseMovedEvent(Vector2 position)                              => OnMouseMoved?.Invoke(position);
-    public void RaiseGlobalInputLockEvent(bool isLocked)                            => OnGlobalInputLock?.Invoke(isLocked);
+    public void RaiseToggleMenuEvent(InputAction.CallbackContext context)               => OnToggleMenu?.Invoke(context);
+    public void RaiseMouseMovedEvent(Vector2 position)                                  => OnMouseMoved?.Invoke(position);
+    public void RaiseGlobalInputLockEvent(bool isLocked)                                => OnGlobalInputLock?.Invoke(isLocked);
     #endregion
 
     #region Other Action Events
-    public void RaiseRadialMenuOpenAnimationEvent()                                 => OnRadialMenuHoldStart?.Invoke();
+    public void RaiseRadialMenuOpenAnimationEvent()                                     => OnRadialMenuHoldStart?.Invoke();
     #endregion
 }
