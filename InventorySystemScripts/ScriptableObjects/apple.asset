@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dcd48e47e323222439e48227443a781f, type: 3}
+  m_Name: apple
+  m_EditorClassIdentifier: 
+  iconDB: {fileID: 11400000, guid: 4f45e35e94429314c830f449e45f6307, type: 2}
+  itemName: Blooding Apple
+  sprite: {fileID: 21300000, guid: 7caf9b053f5bc4f41873f2aef662d452, type: 3}
+  category: 1
+  stackable: 1
+  isEquipped: 0
+  isEquippable: 0
+  equipmentSlotType: 0
+  attack: 0
+  defence: 0
+  hp: 5
+  specificDescription: Slowly retrieves the <color=#990000>innocence</color> of childhood
+    upon use
+  storyDescription: "\"It grows in a crack beside a pile of abandoned toys, its skin
+    stained with crayon crumbs. Once a child hid it in the belly of a teddy bear,
+    saying 'When I grow up, I'll take it to see the real sun' \u2014 but the child
+    left, the teddy bear rotted, and it still bore a faint glow in the dark, relying
+    on that half-sentence promise.\""

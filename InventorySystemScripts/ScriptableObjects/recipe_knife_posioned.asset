@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e037ab7724e63bd45ba0ec23c3a06536, type: 3}
+  m_Name: recipe_knife_posioned
+  m_EditorClassIdentifier: 
+  recipeName: Sorrowvein
+  recipeDescription: The weapon crafted from this design is an exquisite dagger,
+    swift in attack and ideal for surprise assaults and critical hits.
+  filterCategory: 3
+  inspirationCost: 2
+  ingredients:
+  - item: {fileID: 11400000, guid: ef428e007d3a62b40a991f1d314253ca, type: 2}
+    count: 1
+  - item: {fileID: 11400000, guid: f7c0028b7bb68024bbfe534c7b8d05c3, type: 2}
+    count: 1
+  result:
+    item: {fileID: 11400000, guid: 92ca8c85e7aa8734a9e87f804a94aea7, type: 2}
+    count: 1

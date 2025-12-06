@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dcd48e47e323222439e48227443a781f, type: 3}
+  m_Name: material_posion
+  m_EditorClassIdentifier: 
+  iconDB: {fileID: 11400000, guid: 4f45e35e94429314c830f449e45f6307, type: 2}
+  itemName: Scarlet-Indigo Venom
+  sprite: {fileID: 21300000, guid: 9cb74b6d80446134cbb9451f3fab6997, type: 3}
+  category: 5
+  stackable: 1
+  isEquipped: 0
+  isEquippable: 0
+  equipmentSlotType: 0
+  attack: 0
+  defence: 0
+  hp: 0
+  specificDescription: test
+  storyDescription: '"If desperate thirst overtakes you, partake of the poison."
+
+    No
+    one could have guessed that a childish tone would crush the last flicker of hope.'

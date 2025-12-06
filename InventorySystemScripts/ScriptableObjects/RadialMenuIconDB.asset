@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a956088dea15a684092c2c8753259d0a, type: 3}
+  m_Name: RadialMenuIconDB
+  m_EditorClassIdentifier: 
+  detailsIcon: {fileID: 21300000, guid: 9fb9db3cfb4994e438d9f82a632d8b9a, type: 3}
+  dropIcon: {fileID: 21300000, guid: 0b815ae66dc74b94bbc90dbc48f5d016, type: 3}
+  sortIcon: {fileID: 21300000, guid: fe8c2afb39eb73e4e8399c5c2b4367bb, type: 3}
+  useIcon: {fileID: 21300000, guid: fc820fc908917cc44a698978fec4ffe8, type: 3}
+  combineIcon: {fileID: 21300000, guid: 0d8ffdf08b5b80845940d4a74270e298, type: 3}
+  fixIcon: {fileID: 21300000, guid: 7afb4bf5d94c6944dbf5b29c31fc25ac, type: 3}
+  equipIcon: {fileID: 21300000, guid: 8b2b9a011394e7b4f91c95fdb73d4552, type: 3}
+  unequipIcon: {fileID: 21300000, guid: 5151169b366484d4c9bcde8b2f825c5e, type: 3}
+  enhanceIcon: {fileID: 21300000, guid: 576bde146c1ef6244866a6c732428707, type: 3}
+  presentIcon: {fileID: 21300000, guid: 04da5207e585f614db0709695deee606, type: 3}
+  craftIcon: {fileID: 21300000, guid: 44122604cf6e4c74a96ff231eedfc56b, type: 3}

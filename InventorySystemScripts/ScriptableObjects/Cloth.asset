@@ -1,0 +1,108 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dcd48e47e323222439e48227443a781f, type: 3}
+  m_Name: Cloth
+  m_EditorClassIdentifier: 
+  iconDB: {fileID: 11400000, guid: 4f45e35e94429314c830f449e45f6307, type: 2}
+  itemName: Despair Shattered Mirror
+  sprite: {fileID: 21300000, guid: f401aaa94b581e44b9eca9d53e579e2b, type: 3}
+  category: 3
+  stackable: 0
+  isEquipped: 0
+  isEquippable: 1
+  equipmentSlotType: 1
+  attack: 0
+  defence: 0.5
+  hp: 0
+  specificDescription: test
+  storyDescription: 'scroll test
+
+    scroll test
+
+    scroll test3
+
+    scroll test
+
+    scroll
+    test
+
+    scroll test3
+
+    scroll test
+
+    scroll test
+
+    scroll test
+
+    scroll
+    test
+
+    scroll test2
+
+    scroll test
+
+    scroll test
+
+    scroll test
+
+    scroll
+    test4
+
+    scroll test
+
+    scroll test
+
+    scroll test
+
+    scroll test
+
+    scroll
+    test
+
+    scroll test1
+
+    scroll test
+
+    scroll test
+
+    scroll test
+
+    scroll
+    test2
+
+    scroll test
+
+    scroll test
+
+    scroll test3
+
+    scroll test
+
+    scroll
+    test
+
+    scroll test
+
+    scroll test
+
+    scroll test
+
+    scroll test2
+
+    scroll
+    test
+
+    scroll test
+
+    scroll test1
+
+    scroll test'

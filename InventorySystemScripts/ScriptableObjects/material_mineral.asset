@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dcd48e47e323222439e48227443a781f, type: 3}
+  m_Name: material_mineral
+  m_EditorClassIdentifier: 
+  iconDB: {fileID: 11400000, guid: 4f45e35e94429314c830f449e45f6307, type: 2}
+  itemName: Black Irron
+  sprite: {fileID: -1261738230, guid: 5a4d9a9558740cb429b27d8d6973f222, type: 3}
+  category: 5
+  stackable: 1
+  isEquipped: 0
+  isEquippable: 0
+  equipmentSlotType: 0
+  attack: 0
+  defence: 0
+  hp: 0
+  specificDescription: This type of metal is often used to forge mysterious and powerful
+    weapons.
+  storyDescription: Innumerable souls are interred under the earth of Shi'eryue.
+    By decree of the Saintess, Cynthia Thorne, a life was valued less than a shard
+    of black iron.
