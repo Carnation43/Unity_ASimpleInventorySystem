@@ -28,7 +28,6 @@ public class RecipeSlotUI : MonoBehaviour, ISelectHandler, IDeselectHandler, ISl
     [SerializeField] private List<FilterBackgroundMapping> categoryTextures;
     [SerializeField] private Image backImg;
     [SerializeField] private GameObject maskOverlay;
-    [SerializeField] private GameObject newTag;
 
     [Header("Unlock Mechanism")]
     [SerializeField] private UIEffectTweener unlockHoldAnimation;
@@ -46,6 +45,9 @@ public class RecipeSlotUI : MonoBehaviour, ISelectHandler, IDeselectHandler, ISl
 
     [Header("Icon Animator")]
     [SerializeField] public Image craftableIcon;
+
+    [Header("Red Dot")]
+    [SerializeField] private RedDotView redDotView;
 
     public RecipeStatus IData { get; private set; }
     public UIEffectTweener UnlockHoldAnimation => unlockHoldAnimation;
@@ -127,6 +129,16 @@ public class RecipeSlotUI : MonoBehaviour, ISelectHandler, IDeselectHandler, ISl
         _iconLockIndicatorTween?.Kill();
 
         IData = newStatus;
+
+        if (newStatus != null && newStatus.recipe != null)
+        {
+            if (redDotView != null)
+            {
+                string path = $"{RedDotPaths.Recipe}/{newStatus.recipe.recipeName}";
+                redDotView.SetPath(path);
+            }
+        }
+
         bool hasRecipe = (newStatus != null && newStatus.recipe != null);
 
         if (!hasRecipe)
@@ -134,7 +146,6 @@ public class RecipeSlotUI : MonoBehaviour, ISelectHandler, IDeselectHandler, ISl
             if (backImg != null) backImg.enabled = false;
             if (_backImgCanvasGroup != null) _backImgCanvasGroup.alpha = 0f;
             if (maskOverlay != null) maskOverlay.SetActive(false);
-            if (newTag != null) newTag.SetActive(false);
 
             if (backImgPatternAnimation != null) backImgPatternAnimation.enabled = false;
             if (unlockHoldAnimation != null) unlockHoldAnimation.gameObject.SetActive(false);
@@ -170,7 +181,6 @@ public class RecipeSlotUI : MonoBehaviour, ISelectHandler, IDeselectHandler, ISl
         if (backImg != null) backImg.enabled = true;
 
         bool isUnlocked = newStatus.isUnlocked;
-        bool isNew = newStatus.isNew;
 
         if (isUnlocked)
         {
@@ -228,8 +238,6 @@ public class RecipeSlotUI : MonoBehaviour, ISelectHandler, IDeselectHandler, ISl
                 unlockHoldAnimation.enabled = true; 
             }
         }
-
-        if (newTag != null) newTag.SetActive(isNew);
     }
 
     private void OnDestroy()

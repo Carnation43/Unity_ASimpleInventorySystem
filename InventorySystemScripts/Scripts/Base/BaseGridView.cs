@@ -9,7 +9,7 @@ using UnityEngine.UI;
 public abstract class BaseGridView<T_SlotData, T_SlotUI> : MonoBehaviour, IGridView
     where T_SlotData : class
     where T_SlotUI : MonoBehaviour, ISlotUI<T_SlotData>
-{ 
+{
 
     [Header("Based Grid View References")]
     [Tooltip("SlotUI prefab")]
@@ -31,6 +31,21 @@ public abstract class BaseGridView<T_SlotData, T_SlotUI> : MonoBehaviour, IGridV
     protected List<Selectable> _selectableSlotList = new List<Selectable>();
 
     public IReadOnlyList<Selectable> SelectableSlots => _selectableSlotList;
+
+    public virtual int TotalDataCount => _selectableSlotList.Count;
+
+    public virtual int ColumnCount {
+        get
+        {
+            if (_itemParentTransform == null) return 1;
+
+            GridLayoutGroup grid = _itemParentTransform.GetComponent<GridLayoutGroup>();
+            if (grid == null) return 1;
+
+            Vector2Int size = GridLayoutGroupHelper.Size(grid);
+            return size.x > 0 ? size.x : 1;
+        }
+    }
 
     protected Coroutine _selectFirstItemCoroutine;
     protected Coroutine _animationCoroutine;
@@ -212,6 +227,32 @@ public abstract class BaseGridView<T_SlotData, T_SlotUI> : MonoBehaviour, IGridV
         else
         {
             EventSystem.current.SetSelectedGameObject(null);
+        }
+    }
+
+    public virtual int GetDataIndex(GameObject slotObj)
+    {
+        if (slotObj == null) return -1;
+
+        for (int i = 0; i < _selectableSlotList.Count; i++)
+        {
+            if (_selectableSlotList[i].gameObject == slotObj)
+            {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    public virtual void SelectDataIndex(int dataIndex)
+    {
+        if (dataIndex < 0 || dataIndex >= _selectableSlotList.Count) return;
+
+        Selectable targetSlot = _selectableSlotList[dataIndex];
+
+        if (targetSlot != null && targetSlot.gameObject.activeInHierarchy)
+        {
+            EventSystem.current.SetSelectedGameObject(targetSlot.gameObject);
         }
     }
 }

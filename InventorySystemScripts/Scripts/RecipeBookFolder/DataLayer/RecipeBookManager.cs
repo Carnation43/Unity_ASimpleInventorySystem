@@ -12,20 +12,15 @@ public class RecipeBookManager : MonoBehaviour
 {
     public static RecipeBookManager instance;
 
+    [Header("Broadcasting On")]
+    [SerializeField] private RecipeEventChannel _recipeChannel;
+
     [Header("Data Source")]
     [Tooltip("Reference from CraftingManager")]
     [SerializeField] private CraftingManager _craftingManager;
     [SerializeField] private PlayerWallet_SO _playerWallet;
 
     public List<RecipeStatus> AcquiredRecipes { get; private set; } = new List<RecipeStatus>();
-
-    // TODO:
-    // public event Action OnRecipeAcquired;
-    // public event Action OnRecipeUnlocked;
-
-    // --- DEBUG ---
-    public event Action OnRecipeDataChanged;
-    // --- DEBUG ---
 
     private void Awake()
     {
@@ -37,29 +32,58 @@ public class RecipeBookManager : MonoBehaviour
         {
             Destroy(this);
         }
+    }
 
-        // --- Debug --- //
-        // Auto-populate the recipe book with all available recipes from the CraftingManager.
-        if (_craftingManager != null && _craftingManager.AllRecipes != null)
+    public bool CanAfford(int cost)
+    {
+        if (_playerWallet == null)
         {
-            foreach (Recipe recipe in _craftingManager.AllRecipes)
-            {
-                AcquiredRecipes.Add(new RecipeStatus(recipe));
-            }
-            Debug.Log($"[RecipeBookManager] Debug, automatically acquired {AcquiredRecipes.Count} recipes");
-        }
-        else
-        {
-            Debug.LogError("[RecipeBookManager] _craftingManager not configured");
+            Debug.LogWarning("[RecipeBookManager] Wallet is missing !");
+            return false;
         }
 
-        // --- Debug --- //
+        return _playerWallet.CurrentInspiration >= cost;
     }
 
     // TODO:
     public void AcquireRecipe(Recipe recipe)
     {
+        if (recipe == null) return;
 
+        bool alreadyHas = AcquiredRecipes.Exists(status => status.recipe == recipe);
+        if (alreadyHas)
+        {
+            Debug.Log($"[RecipeBookManager_AcquireRecipe] Already has recipe: {recipe.recipeName}");
+            return;
+        }
+
+        RecipeStatus newStatus = new RecipeStatus(recipe);
+        AcquiredRecipes.Add(newStatus);
+
+        if (_recipeChannel != null)
+        {
+            _recipeChannel.RaiseRecipeAcquired(recipe);
+
+            _recipeChannel.RaiseRecipeDataChanged();
+        }
+        else
+        {
+            Debug.LogWarning("[RecipeBookManager_AcquireRecipe] Recipe Event Channel is missing!");
+        }
+
+        Debug.Log($"<color=green>[RecipeBookManager_AcquireRecipe] Acquire new recipe: {recipe.recipeName}</color>"); 
+    }
+
+    public void MarkRecipeViewed(RecipeStatus status)
+    {
+        if (status == null || !status.isNew) return;
+
+        status.isNew = false;
+
+        if (_recipeChannel != null)
+        {
+            _recipeChannel.RaiseRecipeViewed(status.recipe);
+        }
     }
 
     // TODO:
@@ -140,6 +164,41 @@ public class RecipeBookManager : MonoBehaviour
         }
         return maxAmount == int.MaxValue ? 0 : maxAmount;
     }
+
+    public bool IsRecipeUnlocked(Recipe recipe)
+    {
+        if (recipe == null) return false;
+
+        var status = AcquiredRecipes.Find(s => s.recipe == recipe);
+
+        return status != null && status.isUnlocked;
+    }
+
+    // --- Debug START ---
+    [ContextMenu("DEBUG: Acquire a recipe")]
+    public void Debug_AcquireRecipe()
+    {
+        if (_craftingManager == null || _craftingManager.AllRecipes == null)
+        {
+            Debug.LogWarning("[RecipeBookManager] CraftingManager is missing");
+        }
+
+        List<Recipe> unacquiredRecipes = _craftingManager.AllRecipes
+            .Where(r => !AcquiredRecipes.Exists(status => status.recipe == r))
+            .ToList();
+
+        if (unacquiredRecipes.Count == 0)
+        {
+            Debug.LogWarning("[RecipeBookManager_Debug] You have already acquired all recipes");
+            return;
+        }
+
+        int randomIndex = UnityEngine.Random.Range(0, unacquiredRecipes.Count);
+        Recipe targetRecipe = unacquiredRecipes[randomIndex];
+
+        AcquireRecipe(targetRecipe);
+    }
+    // --- Debug END ---
 }
 
 

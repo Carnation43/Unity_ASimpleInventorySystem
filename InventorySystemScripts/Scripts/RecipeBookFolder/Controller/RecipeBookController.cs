@@ -16,9 +16,11 @@ public class RecipeBookController : MonoBehaviour, IResettableUI, IMenuPage
     public static event Action<Transform, float> OnUnlockChargeStart;
     // TODO:
     public static event Action OnUnlockChargeCancel;
+    public static event Action OnUnlockFailed;
 
     [Header("Listen to")]
     [SerializeField] private InputEventChannel inputChannel;
+    [SerializeField] private RecipeEventChannel recipeChannel;
 
     [Header("SFX Broadcasting On")]
     [SerializeField] private AudioCueEventChannel uiAudioChannel;
@@ -37,8 +39,6 @@ public class RecipeBookController : MonoBehaviour, IResettableUI, IMenuPage
 
     private SelectionStateManager _stateManager;
     private GridNavigationHandler _navigationHandler;
-
-    private MenuController _mainMenuController;
 
     // --- Switching tab START ---
     private bool _isSwitchingTabs = false;
@@ -69,7 +69,7 @@ public class RecipeBookController : MonoBehaviour, IResettableUI, IMenuPage
         _stateManager = GetComponent<SelectionStateManager>();
         _navigationHandler = GetComponent<GridNavigationHandler>();
 
-        _navigationHandler.Initialize(_stateManager, _recipeBookView, _gridLayoutGroup);
+        _navigationHandler.Initialize(_stateManager, _recipeBookView);
 
         if (holdAudioSource != null && onRecipeUnlockHoldCue != null)
         {
@@ -138,12 +138,10 @@ public class RecipeBookController : MonoBehaviour, IResettableUI, IMenuPage
         RecipeSlotAnimator.OnRecipeItemSelected += HandleRecipeSelected;
         SubscribeToInputs();
 
-        // --- DEBUG ---
-        if (RecipeBookManager.instance != null)
+        if (recipeChannel != null)
         {
-            RecipeBookManager.instance.OnRecipeDataChanged += HandleRecipeDataChanged;
+            recipeChannel.OnRecipeDataChanged += HandleRecipeDataChanged;
         }
-        // --- DEBUG ---
 
         if (_tabsManager != null) _tabsManager.ResetUI();
         if (_stateManager != null) _stateManager.ResetUI();
@@ -167,12 +165,10 @@ public class RecipeBookController : MonoBehaviour, IResettableUI, IMenuPage
 
         UnsubscribeFromInputs();
 
-        // --- DEBUG ---
-        if (RecipeBookManager.instance != null)
+        if (recipeChannel != null)
         {
-            RecipeBookManager.instance.OnRecipeDataChanged -= HandleRecipeDataChanged;
+            recipeChannel.OnRecipeDataChanged -= HandleRecipeDataChanged;
         }
-        // --- DEBUG ---
 
         if (_cancelAnimationCoroutine != null)
         {
@@ -276,6 +272,9 @@ public class RecipeBookController : MonoBehaviour, IResettableUI, IMenuPage
         {
             _currentSelectedRecipeStatus = slotUI.IData;     // Cache recipe status
             _currentSelectedSlotUI = slotUI;                 // Cache slotUI componenet
+
+            if (_currentSelectedRecipeStatus.isNew)
+                RecipeBookManager.instance.MarkRecipeViewed(_currentSelectedRecipeStatus);
         }
 
         // Show details content
@@ -362,7 +361,22 @@ public class RecipeBookController : MonoBehaviour, IResettableUI, IMenuPage
             inputChannel.RaiseGlobalInputLockEvent(true);
         }
 
-        // ... TODO: check for inspiration points ...
+        // Check if it satisfies the inspiration counts
+        int cost = _currentSelectedRecipeStatus.recipe.inspirationCost;
+        if (!RecipeBookManager.instance.CanAfford(cost))
+        {
+            Debug.Log($"[RecipeBookController] Not enough inspiration! Need: {cost}");
+
+            OnUnlockFailed?.Invoke();
+
+            if (_currentSelectedSlotUI != null)
+            {
+                _currentSelectedSlotUI.transform.DOKill(true);
+                _currentSelectedSlotUI.transform.DOShakePosition(0.3f, strength: 5f, vibrato: 20);
+            }
+            inputChannel.RaiseGlobalInputLockEvent(false);
+            return;
+        }
 
         PlayHoldAudio();
 

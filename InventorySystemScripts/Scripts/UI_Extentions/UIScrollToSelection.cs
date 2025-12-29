@@ -1,11 +1,3 @@
-/// Credit zero3growlithe
-/// sourced from: http://forum.unity3d.com/threads/scripts-useful-4-6-scripts-collection.264161/page-2#post-2011648
-/// 
-/// --- MODIFIED VERSION ---
-/// Modifications by Gemini to correctly handle first/last row snapping
-/// for grid layouts, and to fix inverted scrolling logic at edges.
-/// ------------------------
-
 using System.Collections.Generic;
 using UnityEngine.EventSystems;
 
@@ -15,13 +7,17 @@ namespace UnityEngine.UI.Extensions
     [AddComponentMenu("UI/Extensions/UIScrollToSelection")]
     public class UIScrollToSelection : MonoBehaviour
     {
-
         //*** ATTRIBUTES ***//
         [Header("[ Settings ]")]
         [SerializeField]
         private ScrollType scrollDirection = ScrollType.BOTH;
         [SerializeField]
         private float scrollSpeed = 10f;
+
+        [Header("[ Buffer ]")]
+        [SerializeField]
+        [Tooltip("滚动时预留的边缘空隙，确保物品不会贴边显示。建议设置为格子间距的一半 (例如 20-50)。")]
+        private float scrollBuffer = 20f; // 默认给一个合理的值
 
         [Header("[ Input ]")]
         [SerializeField]
@@ -59,7 +55,7 @@ namespace UnityEngine.UI.Extensions
         // CACHED REFERENCES
         protected RectTransform ScrollWindow { get; set; }
         protected ScrollRect TargetScrollRect { get; set; }
-        protected GridLayoutGroup TargetGridLayoutGroup { get; set; } // <-- [MODIFIED] Added cache for Grid
+        protected GridLayoutGroup TargetGridLayoutGroup { get; set; }
 
 
         // SCROLLING
@@ -75,9 +71,6 @@ namespace UnityEngine.UI.Extensions
         protected RectTransform CurrentTargetRectTransform { get; set; }
         protected bool IsManualScrollingAvailable { get; set; }
 
-        /// <summary>
-        /// 获取当前选中项在其父节点(LayoutListGroup)中的同级索引
-        /// </summary>
         protected int CurrentSelectedIndex
         {
             get
@@ -88,9 +81,6 @@ namespace UnityEngine.UI.Extensions
             }
         }
 
-        /// <summary>
-        /// 获取 LayoutListGroup 中子项的总数
-        /// </summary>
         protected int TotalSelectableItems
         {
             get
@@ -100,15 +90,10 @@ namespace UnityEngine.UI.Extensions
             }
         }
 
-        /// <summary>
-        /// [MODIFIED]
-        /// 获取网格的列数 (用于垂直滚动) 或 行数 (用于水平滚动)
-        /// </summary>
         protected int RowOrColumnCount
         {
             get
             {
-                // 确保 TargetGridLayoutGroup 已被缓存
                 if (TargetGridLayoutGroup == null && LayoutListGroup != null)
                 {
                     TargetGridLayoutGroup = LayoutListGroup.GetComponent<GridLayoutGroup>();
@@ -116,24 +101,16 @@ namespace UnityEngine.UI.Extensions
 
                 if (TargetGridLayoutGroup == null) return 1;
 
-                // 使用你项目中的 GridLayoutGroupHelper 扩展方法
-                // (这个 cs 文件你之前上传过)
+                // 使用你的 GridLayoutGroupHelper 扩展
                 Vector2Int size = TargetGridLayoutGroup.Size();
 
                 if (scrollDirection == ScrollType.HORIZONTAL)
                 {
-                    // 水平滚动, 我们关心行数 (size.y)
                     return (size.y > 0) ? size.y : 1;
                 }
-
-                // 垂直滚动, 我们关心列数 (size.x)
                 return (size.x > 0) ? size.x : 1;
             }
         }
-
-
-        //*** METHODS - PUBLIC ***//
-
 
         //*** METHODS - PROTECTED ***//
         protected virtual void Awake()
@@ -141,7 +118,6 @@ namespace UnityEngine.UI.Extensions
             TargetScrollRect = GetComponent<ScrollRect>();
             ScrollWindow = TargetScrollRect.GetComponent<RectTransform>();
 
-            // [MODIFIED] 缓存 GridLayoutGroup
             if (LayoutListGroup != null)
             {
                 TargetGridLayoutGroup = LayoutListGroup.GetComponent<GridLayoutGroup>();
@@ -155,7 +131,6 @@ namespace UnityEngine.UI.Extensions
 
         protected virtual void Update()
         {
-            // [MODIFIED] 确保 Grid 引用有效
             if (TargetGridLayoutGroup == null && LayoutListGroup != null)
             {
                 TargetGridLayoutGroup = LayoutListGroup.GetComponent<GridLayoutGroup>();
@@ -169,14 +144,12 @@ namespace UnityEngine.UI.Extensions
         //*** METHODS - PRIVATE ***//
         private void UpdateReferences()
         {
-            // update current selected rect transform
             if (CurrentSelectedGameObject != LastCheckedGameObject)
             {
                 CurrentTargetRectTransform = (CurrentSelectedGameObject != null) ?
                     CurrentSelectedGameObject.GetComponent<RectTransform>() :
                     null;
 
-                // unlock automatic scrolling
                 if (CurrentSelectedGameObject != null &&
                     CurrentSelectedGameObject.transform.parent == LayoutListGroup.transform)
                 {
@@ -199,7 +172,6 @@ namespace UnityEngine.UI.Extensions
                 if (Input.GetKeyDown(CancelScrollKeycodes[i]) == true)
                 {
                     IsManualScrollingAvailable = true;
-
                     break;
                 }
             }
@@ -207,7 +179,6 @@ namespace UnityEngine.UI.Extensions
 
         private void ScrollRectToLevelSelection()
         {
-            // check main references
             bool referencesAreIncorrect = (TargetScrollRect == null || LayoutListGroup == null || ScrollWindow == null);
 
             if (referencesAreIncorrect == true || IsManualScrollingAvailable == true)
@@ -217,13 +188,11 @@ namespace UnityEngine.UI.Extensions
 
             RectTransform selection = CurrentTargetRectTransform;
 
-            // check if scrolling is possible
             if (selection == null || selection.transform.parent != LayoutListGroup.transform)
             {
                 return;
             }
 
-            // depending on selected scroll direction move the scroll rect to selection
             switch (ScrollDirection)
             {
                 case ScrollType.VERTICAL:
@@ -241,24 +210,20 @@ namespace UnityEngine.UI.Extensions
 
         private void UpdateVerticalScrollPosition(RectTransform selection)
         {
-            // move the current scroll rect to correct position
             float selectionPosition = -selection.anchoredPosition.y - (selection.rect.height * (1 - selection.pivot.y));
 
             float elementHeight = selection.rect.height;
             float maskHeight = ScrollWindow.rect.height;
             float listAnchorPosition = LayoutListGroup.anchoredPosition.y;
 
-            // get the element offset value depending on the cursor move direction
             float offlimitsValue = GetScrollOffset(selectionPosition, listAnchorPosition, elementHeight, maskHeight);
 
-            // [MODIFIED] 修复了当 content 高度为0时除零的问题
             if (LayoutListGroup.rect.height > 0)
             {
                 TargetScrollRect.verticalNormalizedPosition +=
                     (offlimitsValue / LayoutListGroup.rect.height) * Time.unscaledDeltaTime * scrollSpeed;
             }
 
-            // 如果 Content 高度小于视口，直接设置为1 (顶部)
             if (LayoutListGroup.rect.height <= maskHeight)
             {
                 TargetScrollRect.verticalNormalizedPosition = 1f;
@@ -267,111 +232,93 @@ namespace UnityEngine.UI.Extensions
 
         private void UpdateHorizontalScrollPosition(RectTransform selection)
         {
-            // move the current scroll rect to correct position
             float selectionPosition = -selection.anchoredPosition.x - (selection.rect.width * (1 - selection.pivot.x));
 
             float elementWidth = selection.rect.width;
             float maskWidth = ScrollWindow.rect.width;
             float listAnchorPosition = -LayoutListGroup.anchoredPosition.x;
 
-            // get the element offset value depending on the cursor move direction
-            // [MODIFIED] 注意这里的负号，它反转了 GetScrollOffset 的逻辑以适应水平滚动
             float offlimitsValue = -GetScrollOffset(selectionPosition, listAnchorPosition, elementWidth, maskWidth);
 
-            // [MODIFIED] 修复了当 content 宽度为0时除零的问题
             if (LayoutListGroup.rect.width > 0)
             {
                 TargetScrollRect.horizontalNormalizedPosition +=
                     (offlimitsValue / LayoutListGroup.rect.width) * Time.unscaledDeltaTime * scrollSpeed;
             }
 
-            // 如果 Content 宽度小于视口，直接设置为0 (左侧)
             if (LayoutListGroup.rect.width <= maskWidth)
             {
                 TargetScrollRect.horizontalNormalizedPosition = 0f;
             }
         }
 
-        // --- [MODIFIED] 这是被完全重写的核心方法 ---
+        // --- 核心修改部分 ---
         private float GetScrollOffset(float position, float listAnchorPosition, float targetLength, float maskLength)
         {
-            // 垂直滚动: VNP=1 是顶部, VNP=0 是底部
-            // GetScrollOffset 返回正值时，VNP增加 (向上滚动)
-            // GetScrollOffset 返回负值时，VNP减少 (向下滚动)
-
-            // 水平滚动: HNP=0 是左侧, HNP=1 是右侧
-            // GetScrollOffset 返回正值 -> 被-号反转 -> HNP减少 (向左滚动)
-            // GetScrollOffset 返回负值 -> 被-号反转 -> HNP增加 (向右滚动)
-
-            float viewStart = listAnchorPosition;   // 视口顶/左侧 (Content的Y/X锚点位置)
-            float viewEnd = listAnchorPosition + maskLength;     // 视口底/右侧
-            float itemStart = position;             // 选中项顶/左侧
-            float itemEnd = position + targetLength;        // 选中项底/右侧
+            float viewStart = listAnchorPosition;
+            float viewEnd = listAnchorPosition + maskLength;
+            float itemStart = position;
+            float itemEnd = position + targetLength;
 
             int index = CurrentSelectedIndex;
-            if (index < 0) return 0; // 未选中
+            if (index < 0) return 0;
 
             int total = TotalSelectableItems;
             if (total == 0) return 0;
 
-            int spanCount = RowOrColumnCount; // 获取列数（垂直）或行数（水平）
-            if (spanCount == 0) spanCount = 1; // 防止除零
+            int spanCount = RowOrColumnCount;
+            if (spanCount == 0) spanCount = 1;
 
-            // --- 边缘情况处理 ---
-
-            // 1. 检查是否在第一行/第一列 (index < spanCount)
+            // 1. 检查是否在第一行/第一列
+            // 如果是第一个，我们强制对齐顶部，不加 buffer，避免顶部出现奇怪的留白
             int currentRowIndex = index / spanCount;
             if (currentRowIndex == 0)
             {
-                // 目标：滚动到顶部/最左侧 (listAnchorPosition = 0)
-                // (viewStart - itemStart) -> (listAnchorPosition - 0)
-                // 返回 listAnchorPosition，它是一个正值 (e.g. 50)，
-                // VNP 会增加 (向上滚)，直到 listAnchorPosition 变为 0
                 return listAnchorPosition;
             }
 
             // 2. 检查是否在最后一行/最后一列
+            // 如果是最后一个，我们强制对齐底部，不加 buffer
             int lastRowIndex = (total - 1) / spanCount;
             if (currentRowIndex == lastRowIndex)
             {
-                // 目标：滚动到Gird的底部/最右侧
                 float contentSize = (scrollDirection == ScrollType.VERTICAL || scrollDirection == ScrollType.BOTH) ? LayoutListGroup.rect.height : LayoutListGroup.rect.width;
 
                 if (contentSize > maskLength)
                 {
-                    // 目标 (viewBottom == contentSize)
-                    // (viewBottom - itemBottom) -> ( (listAnchorPosition + maskLength) - contentSize )
-                    // 假设 contentSize=1000, maskLength=200, 目标 listAnchorPosition=800
-                    // 假设当前 listAnchorPosition=750, viewEnd=950
-                    // (950 - 1000) = -50
-                    // VNP 会减少 (向下滚)，直到 listAnchorPosition 变为 800
                     return (listAnchorPosition + maskLength) - contentSize;
                 }
                 else
                 {
-                    // Content 小于视口，也应该滚回顶部
                     return listAnchorPosition;
                 }
             }
 
-            // --- 标准滚动逻辑 (非边缘行/列) ---
-            if (itemStart < viewStart)
+            // 3. 正常滚动逻辑 (加入 Buffer 判定)
+
+            // 目标：物品不仅要进入 ViewStart，还要进入 ViewStart + Buffer 的区域
+            // 如果 itemStart < viewStart + scrollBuffer，说明物品太靠上/左了（或者被切掉了）
+            if (itemStart < viewStart + scrollBuffer)
             {
-                // 物品在视口 "前" (上/左)，向上/左滚动
-                return viewStart - itemStart; // (返回正值)
-            }
-            else if (itemEnd > viewEnd)
-            {
-                // 物品在视口 "后" (下/右)，向下/右滚动
-                return viewEnd - itemEnd; // (返回负值)
+                // 我们希望 itemStart 最终位于 viewStart + scrollBuffer 的位置
+                // 差值 = (viewStart) - (itemStart - scrollBuffer) = viewStart - itemStart + scrollBuffer
+                // 返回正值 -> Scroll Up / Left
+                return viewStart - itemStart + scrollBuffer;
             }
 
-            return 0; // 在视图内
+            // 目标：物品不仅要进入 ViewEnd，还要进入 ViewEnd - Buffer 的区域
+            // 如果 itemEnd > viewEnd - scrollBuffer，说明物品太靠下/右了（或者被切掉了）
+            else if (itemEnd > viewEnd - scrollBuffer)
+            {
+                // 我们希望 itemEnd 最终位于 viewEnd - scrollBuffer 的位置
+                // 差值 = (viewEnd) - (itemEnd + scrollBuffer) = viewEnd - itemEnd - scrollBuffer
+                // 返回负值 -> Scroll Down / Right
+                return viewEnd - itemEnd - scrollBuffer;
+            }
+
+            return 0;
         }
-        // --- 方法替换结束 ---
 
-
-        //*** ENUMS ***//
         public enum ScrollType
         {
             VERTICAL,

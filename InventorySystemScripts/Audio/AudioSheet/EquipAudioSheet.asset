@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 18e929db951bce24e9857dae0155e1e4, type: 3}
+  m_Name: EquipAudioSheet
+  m_EditorClassIdentifier: 
+  audioClip: {fileID: 8300000, guid: 321019b11be3ba34e989f219c7616dfb, type: 3}
+  cues:
+  - cueName: Equip01
+    startTime: 0.25
+    duration: 0.6
+  - cueName: Equip02
+    startTime: 1.2
+    duration: 0.6
+  - cueName: Equip03
+    startTime: 2.7
+    duration: 0.6

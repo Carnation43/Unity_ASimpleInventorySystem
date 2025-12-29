@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b351fb97a757cf943871c7a85d31c77f, type: 3}
   m_Name: PlayerWallet_Asset
   m_EditorClassIdentifier: 
-  _currentInspiration: 28
+  _currentInspiration: 0
   _initialInspiration: 100
   _currentGlows: 5000
   _initialGlows: 5000

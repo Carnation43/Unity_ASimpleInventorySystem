@@ -12,6 +12,10 @@ public class InspirationView : MonoBehaviour
     [Header("UI Reference")]
     [SerializeField] TMP_Text amountText;
 
+    [Header("Color Settings")]
+    [SerializeField] private Color errorColor = Color.red;
+    [SerializeField] private Color normalColor = Color.white;
+
     [Header("Effects")]
     [Tooltip("Drag in the prefab of a single light sphere")]
     [SerializeField] private GameObject particlePrefab;
@@ -36,6 +40,8 @@ public class InspirationView : MonoBehaviour
         RecipeBookController.OnUnlockChargeStart += StartChargeSequence;
         RecipeBookController.OnUnlockChargeCancel += StopChargeSequence;
 
+        RecipeBookController.OnUnlockFailed += HandleFailed;
+
         if (playerWallet != null)
         {
             UpdateAmountText();
@@ -47,6 +53,8 @@ public class InspirationView : MonoBehaviour
     {
         RecipeBookController.OnUnlockChargeStart -= StartChargeSequence;
         RecipeBookController.OnUnlockChargeCancel -= StopChargeSequence;
+
+        RecipeBookController.OnUnlockFailed -= HandleFailed;
 
         if (playerWallet != null)
         {
@@ -140,6 +148,21 @@ public class InspirationView : MonoBehaviour
             controller.flyDuration = overrideFlyDuration;
 
             controller.Play(target, particlePrefab);
+        }
+    }
+
+    private void HandleFailed()
+    {
+        if (amountText != null)
+        {
+            amountText.DOKill();
+            amountText.rectTransform.DOKill();
+            amountText.color = normalColor;
+            amountText.transform.localScale = Vector3.one;
+
+            amountText.DOColor(errorColor, 0.15f).SetLoops(2, LoopType.Yoyo);
+
+            amountText.transform.DOPunchScale(Vector3.one * 0.2f, 0.3f);
         }
     }
 }

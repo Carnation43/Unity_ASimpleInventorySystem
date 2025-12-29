@@ -73,13 +73,6 @@ public class MenuController : MonoBehaviour, IResettableUI
 
     private void Update()
     {
-        if (_currentPage != null)
-        Debug.Log($"[MenuController]: current page is {_currentPage.PageGameObject.name}");
-        else
-        {
-            Debug.Log("No page found");
-        }
-
         if (Input.GetKeyDown(KeyCode.F12))
         {
             Debug.LogWarning("Force Reset Input Lock£¡");
@@ -308,6 +301,7 @@ public class MenuController : MonoBehaviour, IResettableUI
         if (_currentPage != null)
         {
             _currentPage.ClosePage();
+            Debug.Log($"[MenuController] _currentPage: {_currentPage.PageGameObject.name} has been closed");
         }
 
         // 3. Reset visual

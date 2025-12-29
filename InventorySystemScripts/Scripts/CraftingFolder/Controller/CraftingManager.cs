@@ -14,6 +14,8 @@ public class CraftingManager : MonoBehaviour, IResettableData
     [Header("Recipes Data")]
     [Tooltip("A list of all available Recipe ScriptableObjects in the game.")]
     [SerializeField] private List<Recipe> allRecipes;
+    [Tooltip("Recipes Data Dependency")]
+    [SerializeField] private RecipeBookManager _recipeBookManager;
 
     [Header("Inventory Slots Stats")]
     private List<InventorySlot> _craftingSlots = new List<InventorySlot>(3);
@@ -127,6 +129,13 @@ public class CraftingManager : MonoBehaviour, IResettableData
         // Look up in the dictionary
         if (_recipeDictionary.TryGetValue(currentKey, out Recipe foundRecipe))
         {
+            if (_recipeBookManager != null && !_recipeBookManager.IsRecipeUnlocked(foundRecipe))
+            {
+                MatchedRecipe = null;
+                Debug.Log($"[CraftingManager] Recipe found {foundRecipe.recipeName} but not unlocked yet.");
+                return;
+            }
+
             // Check Quantity
             if(DoQuantitiesMatch(foundRecipe, currentIngredients))
             {

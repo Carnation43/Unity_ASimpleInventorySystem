@@ -20,9 +20,10 @@ public class SideMenuButton : MonoBehaviour, IResettableUI, ISelectHandler, IDes
     [Header("Configuration")]
     public SideMenuType menuType;
 
+    [Header("Red Dot Integration")]
+    [SerializeField] private RedDotView redDotView;
+
     [Header("UI References")]
-    [Tooltip("Red notification dot")]
-    [SerializeField] private GameObject redDot;
     [Tooltip("The out border image")]
     [SerializeField] private Image borderImage;
     [Tooltip("The inner glow background")]
@@ -50,19 +51,38 @@ public class SideMenuButton : MonoBehaviour, IResettableUI, ISelectHandler, IDes
         ResetUI();
     }
 
+    private void Start()
+    {
+        InitializeDot();
+    }
+
+    private void InitializeDot()
+    {
+        if (redDotView == null) return;
+
+        string path = "";
+        switch (menuType)
+        {
+            case SideMenuType.Inventory:
+                path = RedDotPaths.Inventory;
+                break;
+            case SideMenuType.Recipe:
+                path = RedDotPaths.Recipe;
+                break;
+        }
+
+        if (!string.IsNullOrEmpty(path))
+        {
+            redDotView.SetPath(path);
+        }
+    }
+
     private void OnDisable()
     {
         _breathingSequence?.Kill();
-        ResetUI();
         _isSelected = false;
-    }
 
-    /// <summary>
-    /// External API to toggle the red dot notifaction
-    /// </summary>
-    public void SetRedDot(bool isActive)
-    {
-        if (redDot != null) redDot.SetActive(isActive);
+        ResetUI();
     }
 
     /// <summary>
@@ -153,9 +173,14 @@ public class SideMenuButton : MonoBehaviour, IResettableUI, ISelectHandler, IDes
 
     public void ResetUI()
     {
+        _breathingSequence?.Kill();
+        borderImage?.DOKill();
+
         if (backImgCanvasGroup != null) backImgCanvasGroup.alpha = 0f;
-        if (redDot != null) redDot.SetActive(false);
         if (btnText != null) btnText.color = normalTextColor;
+
+        _isSelected = false;
+
         if (borderImage != null)
         {
             borderImage.rectTransform.localScale = normalScale;

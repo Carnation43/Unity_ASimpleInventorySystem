@@ -11,7 +11,6 @@ public class GridNavigationHandler : MonoBehaviour
     // Using generic references instead of specific "InventoryView"
     private SelectionStateManager _stateManager;
     private IGridView _gridView;
-    private GridLayoutGroup _group;
 
     [Header("Listening To")]
     [SerializeField] private InputEventChannel inputChannel;
@@ -58,11 +57,10 @@ public class GridNavigationHandler : MonoBehaviour
         StopContinuousNavigation();
     }
 
-    public void Initialize(SelectionStateManager stateManager, IGridView gridView, GridLayoutGroup group)
+    public void Initialize(SelectionStateManager stateManager, IGridView gridView)
     {
         _stateManager = stateManager;
         _gridView = gridView;
-        _group = group;
     }
 
     public void MoveOneStep(Vector2 move)
@@ -144,48 +142,61 @@ public class GridNavigationHandler : MonoBehaviour
 
         if (newIndex >= 0 && newIndex < _gridView.SelectableSlots.Count)
         {
-            var targetSlot = _gridView.SelectableSlots[newIndex];
-            if (targetSlot.gameObject.activeInHierarchy)
-            {
-                EventSystem.current.SetSelectedGameObject(targetSlot.gameObject);
-            }
+            _gridView.SelectDataIndex(newIndex);
         }
     }
 
     private int CalculateXAddition(int direction)
     {
-        Vector2Int count = GridLayoutGroupHelper.Size(_group);
-        if (count.x <= 1) return 0;
+        int columnCount = _gridView.ColumnCount;
+        int totalCount = _gridView.TotalDataCount;
+        int currentIndex = GetCurrentDataIndex();
+
+        if (columnCount <= 1 && totalCount > 1) columnCount = 1;
 
         if (direction > 0) // right
         {
-            if (_stateManager.LastSelectedIndex == _gridView.SelectableSlots.Count - 1) return 0;
+            if (currentIndex >= totalCount - 1) return 0;
             // if (_stateManager.LastSelectedIndex % count.x == count.x - 1) return 0;
             return 1;
         }
         else // left
         {
             // if (_stateManager.LastSelectedIndex % count.x == 0) return 0;
+            if (currentIndex <= 0) return 0;
             return -1;
         }
     }
 
     private int CalculateYAddition(int direction)
     {
-        Vector2Int count = GridLayoutGroupHelper.Size(_group);
-        if (count.x == 0) return 0;
+        int columnCount = _gridView.ColumnCount;
+        int totalCount = _gridView.TotalDataCount;
+        int currentIndex = GetCurrentDataIndex();
+
+        if (columnCount == 0) return 0;
 
         if (direction > 0) // up
         {
-            if (_stateManager.LastSelectedIndex - count.x < 0) return 0;
-            return -count.x;
+            if (currentIndex - columnCount < 0) return 0;
+            return -columnCount;
         }
         else // down
         {
-            if (_stateManager.LastSelectedIndex + count.x >= _gridView.SelectableSlots.Count)
-                return (_gridView.SelectableSlots.Count - 1) - _stateManager.LastSelectedIndex;
-            return count.x;
+            if (currentIndex + columnCount < totalCount)
+                return columnCount;
+            if (currentIndex < totalCount - 1)
+                return (totalCount - 1) - currentIndex;
+
+            return 0;
         }
+    }
+
+    private int GetCurrentDataIndex()
+    {
+        if (_stateManager.LastItemSelected == null) return 0;
+        int index = _gridView.GetDataIndex(_stateManager.LastItemSelected);
+        return (index == -1) ? 0 : index;
     }
 
     /// <summary>
@@ -195,15 +206,15 @@ public class GridNavigationHandler : MonoBehaviour
     /// <returns>bool value</returns>
     public bool IsOnLastRow()
     {
-        if (_stateManager.LastItemSelected == null) return false;
+        int currentIndex = GetCurrentDataIndex();
+        int totalCount = _gridView.TotalDataCount;
+        int columnCount = _gridView.ColumnCount;
 
-        var gridLayoutSize = GridLayoutGroupHelper.Size(_group);
-        if (gridLayoutSize.x == 0 || gridLayoutSize.y == 0) return false;
+        if (columnCount == 0) return false;
 
-        int currentRowIndex = _stateManager.LastSelectedIndex / gridLayoutSize.x;
+        int currentRow = currentIndex / columnCount;
+        int lastRow = (totalCount - 1) / columnCount;
 
-        int lastRowIndex = gridLayoutSize.y - 1;
-
-        return currentRowIndex == lastRowIndex;
+        return currentRow == lastRow;
     }
 }

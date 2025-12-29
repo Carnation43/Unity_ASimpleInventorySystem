@@ -53,7 +53,7 @@ public class InventoryController : MonoBehaviour, IResettableUI, IMenuPage
 
         ItemsIconAnimationController.OnItemSelected += _stateManager.OnItemSelected;
 
-        _navigationHandler.Initialize(_stateManager, _inventoryView, _group);
+        _navigationHandler.Initialize(_stateManager, _inventoryView);
     }
 
     private void OnDestroy()
